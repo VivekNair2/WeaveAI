@@ -41,6 +41,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [fieldPositions, setFieldPositions] = useState<Record<string, { x: number, y: number }>>({});
 
+  useEffect(() => {
+    console.log("Edges are:",edges)
+  }, [edges])
+  
   // Update field positions when nodes change
   useEffect(() => {
     const updateFieldPositions = () => {
@@ -413,10 +417,27 @@ const Workspace: React.FC<WorkspaceProps> = ({
     );
   };
 
-  // Helper to render edge connections
+  // Helper to render edge connections with delete icon
   const renderEdges = () => {
     return (
-      <svg className="absolute inset-0 pointer-events-none z-10" width="100%" height="100%">
+      <svg
+        className="absolute inset-0 z-10"
+        width="100%"
+        height="100%"
+        style={{ pointerEvents: 'none' }}
+      >
+        <defs>
+          <marker 
+            id="arrow"
+            markerWidth="10" 
+            markerHeight="10" 
+            refX="10" 
+            refY="3" 
+            orient="auto"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#666" />
+          </marker>
+        </defs>
         {edges.map(edge => {
           const sourcePos = fieldPositions[edge.sourceHandle];
           const targetPos = fieldPositions[edge.targetHandle];
@@ -425,17 +446,43 @@ const Workspace: React.FC<WorkspaceProps> = ({
             return null;
           }
 
+          // Calculate midpoint coordinates for the delete icon
+          const midX = (sourcePos.x + targetPos.x) / 2;
+          const midY = (sourcePos.y + targetPos.y) / 2;
+
           return (
-            <line
-              key={edge.id}
-              x1={sourcePos.x}
-              y1={sourcePos.y}
-              x2={targetPos.x}
-              y2={targetPos.y}
-              stroke="#666"
-              strokeWidth="2"
-              strokeDasharray="5,5"
-            />
+            <g key={edge.id}>
+              <line
+                x1={sourcePos.x}
+                y1={sourcePos.y}
+                x2={targetPos.x}
+                y2={targetPos.y}
+                stroke="#666"
+                strokeWidth="2"
+                strokeDasharray="5,5"
+                markerEnd="url(#arrow)"
+                style={{ pointerEvents: 'none' }}
+              />
+              <g
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveEdge(edge.id);
+                }}
+                style={{ cursor: 'pointer', pointerEvents: 'all' }}
+              >
+                <circle cx={midX} cy={midY} r="10" fill="white" stroke="#666" strokeWidth="1" />
+                <text
+                  x={midX}
+                  y={midY + 4}
+                  textAnchor="middle"
+                  fill="#666"
+                  fontSize="12"
+                  fontWeight="bold"
+                >
+                  x
+                </text>
+              </g>
+            </g>
           );
         })}
       </svg>
