@@ -7,6 +7,7 @@ interface WorkspaceProps {
   edges: EdgeData[];
   onAddEdge: (edge: EdgeData) => void;
   onRemoveEdge: (edgeId: string) => void;
+  onNodeDrop?: (nodeType: string, position: { x: number, y: number }) => void;
 }
 
 // Helper to get colors based on data types
@@ -27,7 +28,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
   setNodes, 
   edges, 
   onAddEdge, 
-  onRemoveEdge 
+  onRemoveEdge,
+  onNodeDrop
 }) => {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const draggingNodeRef = useRef<string | null>(null);
@@ -91,13 +93,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const x = e.clientX - (workspaceRect?.left || 0);
     const y = e.clientY - (workspaceRect?.top || 0);
     
-    // This is now handled in the Playground component
-    // We're just passing the node type to the parent
-    // Let the parent handle adding the node with the correct template
-    const found = nodes.find(node => node.type === nodeType);
-    if (found) {
-      return;
-    }
+    // Pass the node type and position to the parent component
+    onNodeDrop?.(nodeType, { x, y });
   };
 
   const handleNodeDragStart = (e: React.MouseEvent, nodeId: string) => {

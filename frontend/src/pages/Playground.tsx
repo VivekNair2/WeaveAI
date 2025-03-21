@@ -66,6 +66,24 @@ const Playground = () => {
     setNodes([...nodes, newNode]);
   };
 
+  const handleNodeDrop = (nodeType: string, position: { x: number, y: number }) => {
+    const template = nodeTemplates[nodeType];
+    if (!template) return;
+    
+    const newNode: NodeData = {
+      id: `node-${Date.now()}`,
+      type: nodeType,
+      position,
+      data: { 
+        label: nodeType.charAt(0).toUpperCase() + nodeType.slice(1),
+        inputs: template.inputs.map(input => ({...input, id: `${input.id}-${Date.now()}`})),
+        outputs: template.outputs.map(output => ({...output, id: `${output.id}-${Date.now()}`}))
+      }
+    };
+    
+    setNodes(prevNodes => [...prevNodes, newNode]);
+  };
+
   const handleAddEdge = (edge: EdgeData) => {
     // Check if an edge with the same source and target already exists
     const edgeExists = edges.some(
@@ -91,6 +109,7 @@ const Playground = () => {
         edges={edges}
         onAddEdge={handleAddEdge}
         onRemoveEdge={handleRemoveEdge}
+        onNodeDrop={handleNodeDrop}
       />
     </div>
   );
