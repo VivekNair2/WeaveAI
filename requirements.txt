@@ -1,0 +1,10 @@
+agno 
+python-dotenv
+fastapi[all]
+groq
+duckduckgo-search
+google-genai
+duckdb
+openai
+twilio
+firecrawl
