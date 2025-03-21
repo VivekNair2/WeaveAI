@@ -10,18 +10,6 @@ interface WorkspaceProps {
   onNodeDrop?: (nodeType: string, position: { x: number, y: number }) => void;
 }
 
-// Helper to get colors based on data types
-const getTypeColor = (type: DataType): string => {
-  switch (type) {
-    case 'string': return 'bg-blue-500';
-    case 'number': return 'bg-green-500';
-    case 'boolean': return 'bg-yellow-500';
-    case 'file': return 'bg-purple-500';
-    case 'array': return 'bg-red-500';
-    case 'object': return 'bg-gray-500';
-    default: return 'bg-blue-500';
-  }
-};
 
 const Workspace: React.FC<WorkspaceProps> = ({ 
   nodes, 
@@ -127,26 +115,50 @@ const Workspace: React.FC<WorkspaceProps> = ({
     // Add a temp class to body to prevent text selection
     document.body.classList.add('select-none');
     
+    // Get the node element
+    const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement;
+    if (!nodeElement) return;
+    
+    // Set a flag to avoid triggering the position update during drag
+    let isDragging = true;
+    
     const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDragging) return;
+      
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
       
+      // Use transform for smooth animation instead of updating the state on every mouse move
+      nodeElement.style.transform = `translate(${dx}px, ${dy}px)`;
+    };
+    
+    const handleMouseUp = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      
+      // Get the final position
+      const nodeStyle = getComputedStyle(nodeElement);
+      const transform = nodeElement.style.transform;
+      const matrix = new DOMMatrix(transform);
+      
+      // Reset the transform
+      nodeElement.style.transform = '';
+      
+      // Now update the state once at the end of the drag
       setNodes(prevNodes => 
         prevNodes.map(node => 
           node.id === nodeId 
             ? { 
                 ...node, 
                 position: { 
-                  x: startNodeX + dx, 
-                  y: startNodeY + dy 
+                  x: startNodeX + matrix.m41, 
+                  y: startNodeY + matrix.m42
                 } 
               } 
             : node
         )
       );
-    };
-    
-    const handleMouseUp = () => {
+      
       draggingNodeRef.current = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -299,21 +311,21 @@ const Workspace: React.FC<WorkspaceProps> = ({
           refY="3" 
           orient="auto"
         >
-          <path d="M0,0 L0,6 L7,3 z" fill="#666" />
+          <path d="M0,0 L0,6 L7,3 z" fill="#6366f1" />
         </marker>
       </defs>
         {edges.map(edge => {
           const sourcePos = fieldPositions[edge.sourceHandle];
           const targetPos = fieldPositions[edge.targetHandle];
-
+  
           if (!sourcePos || !targetPos) {
             return null;
           }
-
+  
           // Calculate midpoint coordinates for the delete icon
           const midX = (sourcePos.x + targetPos.x) / 2;
           const midY = (sourcePos.y + targetPos.y) / 2;
-
+  
           return (
             <g key={edge.id}>
               <line
@@ -321,7 +333,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 y1={sourcePos.y}
                 x2={targetPos.x}
                 y2={targetPos.y}
-                stroke="#666"
+                stroke="#6366f1"
                 strokeWidth="2"
                 strokeDasharray="5,5"
                 markerEnd="url(#arrow)"
@@ -334,12 +346,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 }}
                 style={{ cursor: 'pointer', pointerEvents: 'all' }}
               >
-                <circle cx={midX} cy={midY} r="10" fill="white" stroke="#666" strokeWidth="1" />
+                <circle cx={midX} cy={midY} r="10" fill="white" stroke="#f43f5e" strokeWidth="1.5" />
                 <text
                   x={midX}
                   y={midY + 4}
                   textAnchor="middle"
-                  fill="#666"
+                  fill="#f43f5e"
                   fontSize="12"
                   fontWeight="bold"
                 >
@@ -356,13 +368,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
   return (
     <div 
       ref={workspaceRef}
-      className="flex-1 h-full relative overflow-hidden bg-gray-100 p-4"
+      className="flex-1 h-full relative overflow-hidden bg-slate-50 p-4 font-['Inter']"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <div className="absolute inset-0 grid grid-cols-[repeat(40,minmax(25px,1fr))] grid-rows-[repeat(40,minmax(25px,1fr))] opacity-20 pointer-events-none">
+      <div className="absolute inset-0 grid grid-cols-[repeat(40,minmax(25px,1fr))] grid-rows-[repeat(40,minmax(25px,1fr))] opacity-15 pointer-events-none">
         {Array.from({ length: 1600 }).map((_, i) => (
-          <div key={i} className="border-[0.5px] border-gray-300" />
+          <div key={i} className="border-[0.5px] border-slate-300" />
         ))}
       </div>
       
@@ -376,26 +388,27 @@ const Workspace: React.FC<WorkspaceProps> = ({
       {nodes.map((node) => (
         <div
           key={node.id}
-          className="absolute bg-white rounded-lg shadow-xs shadow-black border border-gray-200 w-90 p-4 cursor-move select-none"
+          className="absolute bg-white rounded-lg shadow-md border border-slate-200 w-90 p-5 cursor-move select-none hover:shadow-lg"
           style={{
             left: `${node.position.x}px`,
             top: `${node.position.y}px`,
             userSelect: 'none',
           }}
           onMouseDown={(e) => handleNodeDragStart(e, node.id)}
+          data-node-id={node.id}
         >
           {/* Node header */}
-          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
             <div className="flex items-center">
               <span className="text-2xl mr-3">
                 {node.type === 'text-agent' && '💬'}
                 {node.type === 'voice-agent' && '🎤'}
                 {node.type === 'csv-agent' && '📂'}
               </span>
-              <span className="font-semibold text-gray-800 capitalize">{node.data.label}</span>
+              <span className="font-semibold text-slate-800 capitalize tracking-wide">{node.data.label}</span>
             </div>
             <button
-              className="text-gray-400 hover:text-gray-600"
+              className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-slate-100"
               onClick={(e) => {
                 e.stopPropagation();
                 setNodes(nodes.filter((n) => n.id !== node.id));
@@ -412,21 +425,21 @@ const Workspace: React.FC<WorkspaceProps> = ({
           </div>
 
           {/* Node content */}
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-5">
             {/* Input fields */}
             {node.data.inputs.length > 0 && (
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 w-full">
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">Inputs</h4>
-                <div className="flex flex-col gap-2">
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 w-full">
+                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Inputs</h4>
+                <div className="flex flex-col gap-3">
                   {node.data.inputs.map((input) => (
                     <div
                       key={input.id}
                       className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full"
                     >
-                      {/* Blue dot */}
+                      {/* Connection dot with animation on hover/active */}
                       <div
-                        className={`w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 ${
-                          snapFieldId === input.id ? 'ring-2 ring-blue-400' : ''
+                        className={`w-4 h-4 rounded-full bg-indigo-500 flex-shrink-0 transition-all duration-200 hover:scale-110 ${
+                          snapFieldId === input.id ? 'ring-2 ring-indigo-300 scale-110' : ''
                         }`}
                         data-field-id={input.id}
                         data-node-id={node.id}
@@ -434,7 +447,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
                         onMouseDown={(e) => handleFieldMouseDown(e, node.id, input)}
                       />
                       {/* Label with fixed width */}
-                      <label className="text-sm text-gray-700 flex-shrink-0 w-24">
+                      <label className="text-sm font-medium text-slate-700 flex-shrink-0 w-24">
                         {input.name}
                       </label>
                       {/* Render an input field only for supported types */}
@@ -536,16 +549,16 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
             {/* Output fields */}
             {node.data.outputs.length > 0 && (
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">Outputs</h4>
-                <div className="space-y-2">
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Outputs</h4>
+                <div className="space-y-3">
                   {node.data.outputs.map((output) => (
                     <div key={output.id}>
                       <div className="flex items-center space-x-2">
-                        <label className="text-sm text-gray-700 flex-1">{output.name}</label>
+                        <label className="text-sm font-medium text-slate-700 flex-1">{output.name}</label>
                         <div
-                          className={`w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 ${
-                            snapFieldId === output.id ? 'ring-2 ring-blue-400' : ''
+                          className={`w-4 h-4 rounded-full bg-cyan-500 flex-shrink-0 transition-all duration-200 hover:scale-110 ${
+                            snapFieldId === output.id ? 'ring-2 ring-cyan-300 scale-110' : ''
                           }`}
                           data-field-id={output.id}
                           data-node-id={node.id}
@@ -554,8 +567,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
                         />
                       </div>
                       {output.display && (
-                        <div className="mt-2 p-2 border border-gray-300 rounded text-sm">
-                          {output.value || <span className="text-gray-500">No output</span>}
+                        <div className="mt-2 p-3 border border-slate-300 rounded-md text-sm bg-white">
+                          {output.value || <span className="text-slate-400 italic">No output</span>}
                         </div>
                       )}
                     </div>
