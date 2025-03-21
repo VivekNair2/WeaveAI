@@ -2,8 +2,15 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../components/playground/Sidebar';
 import Workspace from '../components/playground/Workspace';
 import { NodeData, EdgeData, DataType } from '../types/nodeTypes';
+// Add these imports for icons
+import { BiMessageDetail } from 'react-icons/bi';
+import { BsMicFill, BsFileEarmarkText, BsFileEarmark } from 'react-icons/bs';
+import { MdEmail, MdTextFields, MdOutlineOutput } from 'react-icons/md';
+import { FiPaperclip } from 'react-icons/fi';
+import { AiOutlineSound } from 'react-icons/ai';
+import { FaDatabase } from 'react-icons/fa';
 
-const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
+export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon: React.ElementType }> = {
   "Text-Agent": {
     inputs: [
       { id: 'input-1', name: 'Tools', type: 'string', fieldType: 'input' },
@@ -14,7 +21,8 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
     outputs: [
       { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output' },
       { id: 'output-2', name: 'Output', type: 'string', fieldType: 'output' }
-    ]
+    ],
+    icon: BiMessageDetail
   },
   "Voice-Agent": {
     inputs: [
@@ -25,7 +33,8 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
       { id: 'input-5', name: 'Instructions', type: 'string', fieldType: 'input' },
       { id: 'input-6', name: 'To Phone Number', type: 'string', fieldType: 'input' }
     ],
-    outputs: []
+    outputs: [],
+    icon: BsMicFill
   },
   "CSV-Agent": {
     inputs: [
@@ -33,9 +42,9 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
       { id: 'input-2', name: 'File', type: 'file', fieldType: 'input' },
       { id: 'input-3', name: 'Instructions', type: 'string', fieldType: 'input' }
     ],
-    outputs: []
+    outputs: [],
+    icon: BsFileEarmarkText
   },
-  // New Email Tool
   "Email-Tool": {
     inputs: [
       { id: 'input-1', name: 'Sender Mail', type: 'string', fieldType: 'input' },
@@ -46,36 +55,36 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
     ],
     outputs: [
       { id: 'output-1', name: 'Status', type: 'string', fieldType: 'output' }
-    ]
+    ],
+    icon: MdEmail
   },
-  // New Text Input Tool
   "Text-Input-Tool": {
     inputs: [
       { id: 'input-1', name: 'Text', type: 'string', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'Text', type: 'string', fieldType: 'output' }
-    ]
+    ],
+    icon: MdTextFields
   },
-  // New File Input Tool
   "File-Input-Tool": {
     inputs: [
       { id: 'input-1', name: 'File', type: 'file', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'File', type: 'file', fieldType: 'output' }
-    ]
+    ],
+    icon: FiPaperclip
   },
-  // New Text Output Tool
   "Text-Output-Tool": {
     inputs: [
       { id: 'input-1', name: 'Text', type: 'string', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output', display: true }
-    ]
+    ],
+    icon: MdOutlineOutput
   },
-  // New TTS Component
   "TTS-Component": {
     inputs: [
       { id: 'input-1', name: 'Service', type: 'string', fieldType: 'input', options: ['OpenAI', 'ElevenLabs', 'Deepgram'] },
@@ -84,16 +93,17 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
     ],
     outputs: [
       { id: 'output-1', name: 'Audio', type: 'string', fieldType: 'output', display: true }
-    ]
+    ],
+    icon: AiOutlineSound
   },
-  // New Knowledge Base Component
   "Knowledge-Base": {
     inputs: [
       { id: 'input-1', name: 'File', type: 'file', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'Content', type: 'string', fieldType: 'output', display: true }
-    ]
+    ],
+    icon: FaDatabase
   }
 };
 
