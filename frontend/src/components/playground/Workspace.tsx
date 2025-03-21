@@ -40,6 +40,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
   } | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [fieldPositions, setFieldPositions] = useState<Record<string, { x: number, y: number }>>({});
+  const [snapFieldId, setSnapFieldId] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("Edges are:",edges)
@@ -158,65 +159,80 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
   const handleFieldMouseDown = (e: React.MouseEvent, nodeId: string, field: NodeField) => {
     e.stopPropagation();
-    
+
     const fieldType = field.fieldType;
-    // For inputs, we can only connect if it's the target (endpoint of connection)
-    // For outputs, we can only connect if it's the source (starting point of connection)
+    // For inputs, we connect only if a connection is started from an output, and vice versa.
     if ((fieldType === 'input' && connectionStart !== null && connectionStart.type === 'output') ||
         fieldType === 'output') {
-      
+
       setConnectionStart({
         nodeId,
         fieldId: field.id,
         type: fieldType
       });
-      
+
+      // Local variable to capture the snap candidate in real time
+      let currentSnapCandidate: string | null = null;
+
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const workspaceRect = workspaceRef.current?.getBoundingClientRect();
         if (workspaceRect) {
-          setMousePosition({
-            x: moveEvent.clientX - workspaceRect.left,
-            y: moveEvent.clientY - workspaceRect.top
+          const mx = moveEvent.clientX - workspaceRect.left;
+          const my = moveEvent.clientY - workspaceRect.top;
+          setMousePosition({ x: mx, y: my });
+
+          // Determine the candidate field to snap to (within threshold)
+          const snapDistance = 40;
+          let candidate: string | null = null;
+          let minDistance = Infinity;
+          Object.entries(fieldPositions).forEach(([fid, pos]) => {
+            const dx = pos.x - mx;
+            const dy = pos.y - my;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < minDistance && distance <= snapDistance) {
+              minDistance = distance;
+              candidate = fid;
+            }
           });
+          currentSnapCandidate = candidate;
+          setSnapFieldId(candidate);
         }
       };
-      
+
       const handleMouseUp = (upEvent: MouseEvent) => {
-        const targetElement = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
-        
-        if (targetElement) {
-          // Find the nearest input/output field
-          const fieldElement = targetElement.closest('[data-field-id]');
-          
-          // Use the current connection data from closure instead of the state
-          const currentConnection = {
-            nodeId,
-            fieldId: field.id,
-            type: fieldType
-          };
-          
-          console.log("Current connection:", currentConnection);
-          
-          if (fieldElement && currentConnection) {
+        // Capture the candidate from the local variable for connection logic
+        const targetFieldIdCandidate = currentSnapCandidate;
+        setSnapFieldId(null); // Clear visual snapping feedback
+
+        const workspaceRect = workspaceRef.current?.getBoundingClientRect();
+        if (!workspaceRect) return;
+
+        if (targetFieldIdCandidate) {
+          const fieldElement = document.querySelector(`[data-field-id="${targetFieldIdCandidate}"]`);
+          if (fieldElement) {
             const targetFieldId = fieldElement.getAttribute('data-field-id');
             const targetNodeId = fieldElement.getAttribute('data-node-id');
             const targetFieldType = fieldElement.getAttribute('data-field-type');
-            
+
             if (targetFieldId && targetNodeId && targetFieldType) {
-              // Make sure we're connecting output -> input
-              const isValidConnection = 
+              const currentConnection = {
+                nodeId,
+                fieldId: field.id,
+                type: fieldType
+              };
+
+              const isValidConnection =
                 (currentConnection.type === 'output' && targetFieldType === 'input') ||
                 (currentConnection.type === 'input' && targetFieldType === 'output');
-              
+
               if (isValidConnection && targetNodeId !== currentConnection.nodeId) {
-                // Determine source and target based on which is output and which is input
                 const source = currentConnection.type === 'output' ? currentConnection.nodeId : targetNodeId;
                 const sourceHandle = currentConnection.type === 'output' ? currentConnection.fieldId : targetFieldId;
                 const target = currentConnection.type === 'output' ? targetNodeId : currentConnection.nodeId;
                 const targetHandle = currentConnection.type === 'output' ? targetFieldId : currentConnection.fieldId;
-                
+
                 onAddEdge({
-                  id: 'temp-id', // Will be set in parent
+                  id: 'temp-id', // Parent should update the actual edge id
                   source,
                   sourceHandle,
                   target,
@@ -226,168 +242,16 @@ const Workspace: React.FC<WorkspaceProps> = ({
             }
           }
         }
-        
         setConnectionStart(null);
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
       };
-      
+
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     }
   };
 
-  const renderNodeField = (node: NodeData, field: NodeField) => {
-    const isInput = field.fieldType === 'input';
-    const typeColor = getTypeColor(field.type);
-    
-    return (
-      <div 
-        key={field.id}
-        className={`flex ${isInput ? 'flex-row' : 'flex-row-reverse'} items-center my-1`}
-      >
-        <div
-          data-field-id={field.id}
-          data-node-id={node.id}
-          data-field-type={field.fieldType}
-          className={`node-${field.fieldType} w-3 h-3 rounded-full ${typeColor} cursor-crosshair`}
-          onMouseDown={(e) => handleFieldMouseDown(e, node.id, field)}
-        />
-        <div className={`flex-1 px-2 text-sm ${isInput ? 'text-left' : 'text-right'}`}>
-          {field.name}
-        </div>
-        
-        {/* Render the appropriate input type for editable fields */}
-        {isInput && (
-          <div className="ml-2 flex-grow" onClick={(e) => e.stopPropagation()}>
-            {field.type === 'string' && !field.options && (
-              <input 
-                type="text" 
-                className="w-full p-1 text-sm border rounded"
-                placeholder="Text value"
-                value={field.value || ""}
-                onMouseDown={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  setNodes(prev => 
-                    prev.map(n => 
-                      n.id === node.id 
-                        ? {
-                            ...n,
-                            data: {
-                              ...n.data,
-                              inputs: n.data.inputs.map(input => 
-                                input.id === field.id 
-                                  ? { ...input, value: e.target.value }
-                                  : input
-                              )
-                            }
-                          }
-                        : n
-                    )
-                  );
-                }}
-              />
-            )}
-            {field.type === 'number' && (
-              <input 
-                type="number" 
-                className="w-full p-1 text-sm border rounded"
-                placeholder="0"
-                value={field.value || ""}
-                onMouseDown={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  setNodes(prev => 
-                    prev.map(n => 
-                      n.id === node.id 
-                        ? {
-                            ...n,
-                            data: {
-                              ...n.data,
-                              inputs: n.data.inputs.map(input => 
-                                input.id === field.id 
-                                  ? { ...input, value: parseFloat(e.target.value) }
-                                  : input
-                              )
-                            }
-                          }
-                        : n
-                    )
-                  );
-                }}
-              />
-            )}
-            {field.type === 'boolean' && (
-              <select 
-                className="w-full p-1 text-sm border rounded"
-                value={field.value === true ? "true" : "false"}
-                onMouseDown={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  setNodes(prev => 
-                    prev.map(n => 
-                      n.id === node.id 
-                        ? {
-                            ...n,
-                            data: {
-                              ...n.data,
-                              inputs: n.data.inputs.map(input => 
-                                input.id === field.id 
-                                  ? { ...input, value: e.target.value === 'true' }
-                                  : input
-                              )
-                            }
-                          }
-                        : n
-                    )
-                  );
-                }}
-              >
-                <option value="true">True</option>
-                <option value="false">False</option>
-              </select>
-            )}
-            {field.type === 'file' && (
-              <input 
-                type="file" 
-                className="w-full p-1 text-sm"
-                onMouseDown={(e) => e.stopPropagation()}
-              />
-            )}
-            {field.options && (
-              <select 
-                className="w-full p-1 text-sm border rounded"
-                value={field.value || ""}
-                onMouseDown={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  setNodes(prev => 
-                    prev.map(n => 
-                      n.id === node.id 
-                        ? {
-                            ...n,
-                            data: {
-                              ...n.data,
-                              inputs: n.data.inputs.map(input => 
-                                input.id === field.id 
-                                  ? { ...input, value: e.target.value }
-                                  : input
-                              )
-                            }
-                          }
-                        : n
-                    )
-                  );
-                }}
-              >
-                <option value="">Select an option</option>
-                {field.options.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   // Helper to render a connection line
   const renderConnectionLine = () => {
@@ -426,18 +290,18 @@ const Workspace: React.FC<WorkspaceProps> = ({
         height="100%"
         style={{ pointerEvents: 'none' }}
       >
-        <defs>
-          <marker 
-            id="arrow"
-            markerWidth="10" 
-            markerHeight="10" 
-            refX="10" 
-            refY="3" 
-            orient="auto"
-          >
-            <path d="M0,0 L0,6 L9,3 z" fill="#666" />
-          </marker>
-        </defs>
+      <defs>
+        <marker
+          id="arrow"
+          markerWidth="8" 
+          markerHeight="8" 
+          refX="8" 
+          refY="3" 
+          orient="auto"
+        >
+          <path d="M0,0 L0,6 L7,3 z" fill="#666" />
+        </marker>
+      </defs>
         {edges.map(edge => {
           const sourcePos = fieldPositions[edge.sourceHandle];
           const targetPos = fieldPositions[edge.targetHandle];
@@ -512,33 +376,31 @@ const Workspace: React.FC<WorkspaceProps> = ({
       {nodes.map((node) => (
         <div
           key={node.id}
-          className="absolute bg-white rounded-md shadow-md border border-gray-200 w-64 p-3 cursor-move select-none"
+          className="absolute bg-white rounded-lg shadow-lg border border-gray-300 w-90 p-4 cursor-move select-none"
           style={{
             left: `${node.position.x}px`,
             top: `${node.position.y}px`,
-            userSelect: 'none'
+            userSelect: 'none',
           }}
           onMouseDown={(e) => handleNodeDragStart(e, node.id)}
         >
           {/* Node header */}
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
             <div className="flex items-center">
-              <span className="text-xl mr-2">
-                {node.type === 'input' && '📥'}
-                {node.type === 'output' && '📤'}
-                {node.type === 'processor' && '⚙️'}
-                {node.type === 'transformer' && '🔄'}
-                {node.type === 'connector' && '🔌'}
+              <span className="text-2xl mr-3">
+                {node.type === 'text-agent' && '💬'}
+                {node.type === 'voice-agent' && '🎤'}
+                {node.type === 'csv-agent' && '📂'}
               </span>
-              <span className="font-medium">{node.data.label}</span>
+              <span className="font-semibold text-gray-800 capitalize">{node.data.label}</span>
             </div>
-            <button 
+            <button
               className="text-gray-400 hover:text-gray-600"
               onClick={(e) => {
                 e.stopPropagation();
-                setNodes(nodes.filter(n => n.id !== node.id));
+                setNodes(nodes.filter((n) => n.id !== node.id));
                 // Remove any edges connected to this node
-                edges.forEach(edge => {
+                edges.forEach((edge) => {
                   if (edge.source === node.id || edge.target === node.id) {
                     onRemoveEdge(edge.id);
                   }
@@ -548,20 +410,148 @@ const Workspace: React.FC<WorkspaceProps> = ({
               ✕
             </button>
           </div>
-          
-          {/* Node content with inputs and outputs */}
-          <div className="flex flex-col space-y-2">
+
+          {/* Node content */}
+          <div className="flex flex-col space-y-4">
             {/* Input fields */}
             {node.data.inputs.length > 0 && (
-              <div className="bg-gray-50 p-2 rounded">
-                {node.data.inputs.map(input => renderNodeField(node, input))}
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 w-full">
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">Inputs</h4>
+                <div className="flex flex-col gap-2">
+                  {node.data.inputs.map((input) => (
+                    <div
+                      key={input.id}
+                      className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full"
+                    >
+                      {/* Blue dot */}
+                      <div
+                        className={`w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 ${
+                          snapFieldId === input.id ? 'ring-2 ring-blue-400' : ''
+                        }`}
+                        data-field-id={input.id}
+                        data-node-id={node.id}
+                        data-field-type="input"
+                        onMouseDown={(e) => handleFieldMouseDown(e, node.id, input)}
+                      />
+                      {/* Label with fixed width */}
+                      <label className="text-sm text-gray-700 flex-shrink-0 w-24">
+                        {input.name}
+                      </label>
+                      {/* Render an input field only for supported types */}
+                      {input.type === 'string' && !input.options && (
+                        <input
+                          type="text"
+                          className="flex-grow p-1 text-sm border rounded w-full"
+                          placeholder="Enter value"
+                          value={input.value || ''}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            setNodes((prev) =>
+                              prev.map((n) =>
+                                n.id === node.id
+                                  ? {
+                                      ...n,
+                                      data: {
+                                        ...n.data,
+                                        inputs: n.data.inputs.map((i) =>
+                                          i.id === input.id ? { ...i, value: e.target.value } : i
+                                        ),
+                                      },
+                                    }
+                                  : n
+                              )
+                            )
+                          }
+                        />
+                      )}
+                      {input.type === 'file' && (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <span className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+                            Browse
+                          </span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={(e) => {
+                              const fileName = e.target.files?.[0]?.name || 'No file selected';
+                              setNodes((prev) =>
+                                prev.map((n) =>
+                                  n.id === node.id
+                                    ? {
+                                        ...n,
+                                        data: {
+                                          ...n.data,
+                                          inputs: n.data.inputs.map((i) =>
+                                            i.id === input.id ? { ...i, value: fileName } : i
+                                          ),
+                                        },
+                                      }
+                                    : n
+                                )
+                              );
+                            }}
+                          />
+                          <span className="text-sm text-gray-500">
+                            {input.value || 'No file selected'}
+                          </span>
+                        </label>
+                      )}
+                      {input.options && (
+                        <select
+                          className="flex-grow p-1 text-sm border rounded w-full"
+                          value={input.value || ''}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            setNodes((prev) =>
+                              prev.map((n) =>
+                                n.id === node.id
+                                  ? {
+                                      ...n,
+                                      data: {
+                                        ...n.data,
+                                        inputs: n.data.inputs.map((i) =>
+                                          i.id === input.id ? { ...i, value: e.target.value } : i
+                                        ),
+                                      },
+                                    }
+                                  : n
+                              )
+                            )
+                          }
+                        >
+                          <option value="">Select an option</option>
+                          {input.options.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {/* For inputs with type "none", no input field is rendered */}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            
+
             {/* Output fields */}
             {node.data.outputs.length > 0 && (
-              <div className="bg-gray-50 p-2 rounded mt-2">
-                {node.data.outputs.map(output => renderNodeField(node, output))}
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">Outputs</h4>
+                <div className="space-y-2">
+                  {node.data.outputs.map((output) => (
+                    <div key={output.id} className="flex items-center space-x-2">
+                      <label className="text-sm text-gray-700 flex-1">{output.name}</label>
+                      <div
+                        className={`w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 ${snapFieldId === output.id ? 'ring-2 ring-blue-400' : ''}`}
+                        data-field-id={output.id}
+                        data-node-id={node.id}
+                        data-field-type="output"
+                        onMouseDown={(e) => handleFieldMouseDown(e, node.id, output)}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

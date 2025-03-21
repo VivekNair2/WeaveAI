@@ -5,11 +5,9 @@ interface SidebarProps {
 }
 
 const nodeTypes = [
-  { id: 'input', label: 'Input', icon: '📥' },
-  { id: 'output', label: 'Output', icon: '📤' },
-  { id: 'processor', label: 'Processor', icon: '⚙️' },
-  { id: 'transformer', label: 'Transformer', icon: '🔄' },
-  { id: 'connector', label: 'Connector', icon: '🔌' },
+  { id: 'text-agent', label: 'Text Agent', icon: '💬' },
+  { id: 'voice-agent', label: 'Voice Agent', icon: '🎤' },
+  { id: 'csv-agent', label: 'CSV Agent', icon: '📂' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ onAddNode }) => {

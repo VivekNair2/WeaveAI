@@ -43,6 +43,39 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
     outputs: [
       { id: 'output-1', name: 'Data', type: 'array', fieldType: 'output' }
     ]
+  },
+  "text-agent": {
+    inputs: [
+      { id: 'input-1', name: 'Tools', type: 'string', fieldType: 'input' },
+      { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
+      { id: 'input-3', name: 'LLM', type: 'string', fieldType: 'input' },
+      { id: 'input-4', name: 'API Key', type: 'string', fieldType: 'input' }
+    ],
+    outputs: [
+      { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output' },
+      { id: 'output-2', name: 'Output', type: 'string', fieldType: 'output' }
+    ]
+  },
+  "voice-agent": {
+    inputs: [
+      { id: 'input-1', name: 'LLM', type: 'string', fieldType: 'input' },
+      { id: 'input-2', name: 'STT', type: 'string', fieldType: 'input' },
+      { id: 'input-3', name: 'TTS', type: 'string', fieldType: 'input' },
+      { id: 'input-4', name: 'Language', type: 'string', fieldType: 'input' },
+      { id: 'input-5', name: 'Instructions', type: 'string', fieldType: 'input' },
+      { id: 'input-6', name: 'To Phone Number', type: 'string', fieldType: 'input' }
+    ],
+    outputs: [
+
+    ]
+  },
+  "csv-agent": {
+    inputs: [
+      { id: 'input-1', name: 'Input Type', type: 'string', fieldType: 'input', options: ['CSV', 'PDF'] },
+      { id: 'input-2', name: 'PDF/CSV Input', type: 'file', fieldType: 'input' },
+      { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
+    ],
+    outputs: []
   }
 };
 
