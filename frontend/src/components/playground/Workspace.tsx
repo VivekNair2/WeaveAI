@@ -388,14 +388,20 @@ const Workspace: React.FC<WorkspaceProps> = ({
   // Helper to render a connection line
   const renderConnectionLine = () => {
     if (!connectionStart) return null;
-    
+
     const startPosition = fieldPositions[connectionStart.fieldId];
     if (!startPosition) return null;
-    
-    const path = `M ${startPosition.x} ${startPosition.y} L ${mousePosition.x} ${mousePosition.y}`;
-    
+
+    const { x: startX, y: startY } = startPosition;
+    const { x: mouseX, y: mouseY } = mousePosition;
+    const path = `M${startX},${startY} L${mouseX},${mouseY}`;
+
     return (
-      <svg className="absolute inset-0 pointer-events-none z-10">
+      <svg 
+        className="absolute inset-0 pointer-events-none z-10" 
+        width="100%" 
+        height="100%"
+      >
         <path
           d={path}
           stroke="#666"
@@ -410,51 +416,26 @@ const Workspace: React.FC<WorkspaceProps> = ({
   // Helper to render edge connections
   const renderEdges = () => {
     return (
-      <svg className="absolute inset-0 pointer-events-none z-0">
+      <svg className="absolute inset-0 pointer-events-none z-10" width="100%" height="100%">
         {edges.map(edge => {
           const sourcePos = fieldPositions[edge.sourceHandle];
           const targetPos = fieldPositions[edge.targetHandle];
-          
-          if (!sourcePos || !targetPos) return null;
-          
-          // Create a bezier curve
-          const dx = Math.abs(targetPos.x - sourcePos.x);
-          const bezierX = dx / 2;
-          
-          const path = `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x + bezierX} ${sourcePos.y}, ${targetPos.x - bezierX} ${targetPos.y}, ${targetPos.x} ${targetPos.y}`;
-          
+
+          if (!sourcePos || !targetPos) {
+            return null;
+          }
+
           return (
-            <g key={edge.id}>
-              <path
-                d={path}
-                stroke="#666"
-                strokeWidth="2"
-                fill="none"
-              />
-              {/* Add delete button near the middle of the edge */}
-              <g 
-                transform={`translate(${(sourcePos.x + targetPos.x) / 2 - 8}, ${(sourcePos.y + targetPos.y) / 2 - 8})`}
-                className="cursor-pointer"
-                onClick={() => onRemoveEdge(edge.id)}
-              >
-                <circle 
-                  cx="8" 
-                  cy="8" 
-                  r="8" 
-                  fill="white" 
-                  stroke="#666"
-                />
-                <text 
-                  x="8" 
-                  y="12" 
-                  fontSize="12" 
-                  textAnchor="middle" 
-                  fill="#666"
-                >
-                  ×
-                </text>
-              </g>
-            </g>
+            <line
+              key={edge.id}
+              x1={sourcePos.x}
+              y1={sourcePos.y}
+              x2={targetPos.x}
+              y2={targetPos.y}
+              stroke="#666"
+              strokeWidth="2"
+              strokeDasharray="5,5"
+            />
           );
         })}
       </svg>
