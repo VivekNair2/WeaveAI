@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '../components/playground/Sidebar';
 import Workspace from '../components/playground/Workspace';
 import { NodeData, EdgeData, DataType } from '../types/nodeTypes';
@@ -66,6 +66,24 @@ const Playground = () => {
     setNodes([...nodes, newNode]);
   };
 
+  const handleNodeDrop = (nodeType: string, position: { x: number, y: number }) => {
+    const template = nodeTemplates[nodeType];
+    if (!template) return;
+    
+    const newNode: NodeData = {
+      id: `node-${Date.now()}`,
+      type: nodeType,
+      position,
+      data: { 
+        label: nodeType.charAt(0).toUpperCase() + nodeType.slice(1),
+        inputs: template.inputs.map(input => ({...input, id: `${input.id}-${Date.now()}`})),
+        outputs: template.outputs.map(output => ({...output, id: `${output.id}-${Date.now()}`}))
+      }
+    };
+    
+    setNodes(prevNodes => [...prevNodes, newNode]);
+  };
+
   const handleAddEdge = (edge: EdgeData) => {
     // Check if an edge with the same source and target already exists
     const edgeExists = edges.some(
@@ -82,6 +100,27 @@ const Playground = () => {
     setEdges(edges.filter(edge => edge.id !== edgeId));
   };
 
+  // New useEffect: Display concise data payload with node's essential info and its connected edges
+  useEffect(() => {
+    if (edges.length > 0) {
+      const payload = nodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        data: node.data,
+        connectedEdges: edges
+          .filter(edge => edge.source === node.id || edge.target === node.id)
+          .map(edge => ({
+            id: edge.id,
+            source: edge.source,
+            sourceHandle: edge.sourceHandle,
+            target: edge.target,
+            targetHandle: edge.targetHandle
+          }))
+      }));
+      console.log("Data to send to backend:", JSON.stringify(payload, null, 2));
+    }
+  }, [edges, nodes]);
+
   return (
     <div className="flex h-screen w-full bg-gray-50">
       <Sidebar onAddNode={handleAddNode} />
@@ -91,6 +130,7 @@ const Playground = () => {
         edges={edges}
         onAddEdge={handleAddEdge}
         onRemoveEdge={handleRemoveEdge}
+        onNodeDrop={handleNodeDrop}
       />
     </div>
   );

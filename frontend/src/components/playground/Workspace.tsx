@@ -7,6 +7,7 @@ interface WorkspaceProps {
   edges: EdgeData[];
   onAddEdge: (edge: EdgeData) => void;
   onRemoveEdge: (edgeId: string) => void;
+  onNodeDrop?: (nodeType: string, position: { x: number, y: number }) => void;
 }
 
 // Helper to get colors based on data types
@@ -27,7 +28,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
   setNodes, 
   edges, 
   onAddEdge, 
-  onRemoveEdge 
+  onRemoveEdge,
+  onNodeDrop
 }) => {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const draggingNodeRef = useRef<string | null>(null);
@@ -39,6 +41,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [fieldPositions, setFieldPositions] = useState<Record<string, { x: number, y: number }>>({});
 
+  useEffect(() => {
+    console.log("Edges are:",edges)
+  }, [edges])
+  
   // Update field positions when nodes change
   useEffect(() => {
     const updateFieldPositions = () => {
@@ -91,13 +97,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const x = e.clientX - (workspaceRect?.left || 0);
     const y = e.clientY - (workspaceRect?.top || 0);
     
-    // This is now handled in the Playground component
-    // We're just passing the node type to the parent
-    // Let the parent handle adding the node with the correct template
-    const found = nodes.find(node => node.type === nodeType);
-    if (found) {
-      return;
-    }
+    // Pass the node type and position to the parent component
+    onNodeDrop?.(nodeType, { x, y });
   };
 
   const handleNodeDragStart = (e: React.MouseEvent, nodeId: string) => {
@@ -187,7 +188,16 @@ const Workspace: React.FC<WorkspaceProps> = ({
           // Find the nearest input/output field
           const fieldElement = targetElement.closest('[data-field-id]');
           
-          if (fieldElement && connectionStart) {
+          // Use the current connection data from closure instead of the state
+          const currentConnection = {
+            nodeId,
+            fieldId: field.id,
+            type: fieldType
+          };
+          
+          console.log("Current connection:", currentConnection);
+          
+          if (fieldElement && currentConnection) {
             const targetFieldId = fieldElement.getAttribute('data-field-id');
             const targetNodeId = fieldElement.getAttribute('data-node-id');
             const targetFieldType = fieldElement.getAttribute('data-field-type');
@@ -195,15 +205,15 @@ const Workspace: React.FC<WorkspaceProps> = ({
             if (targetFieldId && targetNodeId && targetFieldType) {
               // Make sure we're connecting output -> input
               const isValidConnection = 
-                (connectionStart.type === 'output' && targetFieldType === 'input') ||
-                (connectionStart.type === 'input' && targetFieldType === 'output');
+                (currentConnection.type === 'output' && targetFieldType === 'input') ||
+                (currentConnection.type === 'input' && targetFieldType === 'output');
               
-              if (isValidConnection && targetNodeId !== connectionStart.nodeId) {
+              if (isValidConnection && targetNodeId !== currentConnection.nodeId) {
                 // Determine source and target based on which is output and which is input
-                const source = connectionStart.type === 'output' ? connectionStart.nodeId : targetNodeId;
-                const sourceHandle = connectionStart.type === 'output' ? connectionStart.fieldId : targetFieldId;
-                const target = connectionStart.type === 'output' ? targetNodeId : connectionStart.nodeId;
-                const targetHandle = connectionStart.type === 'output' ? targetFieldId : connectionStart.fieldId;
+                const source = currentConnection.type === 'output' ? currentConnection.nodeId : targetNodeId;
+                const sourceHandle = currentConnection.type === 'output' ? currentConnection.fieldId : targetFieldId;
+                const target = currentConnection.type === 'output' ? targetNodeId : currentConnection.nodeId;
+                const targetHandle = currentConnection.type === 'output' ? targetFieldId : currentConnection.fieldId;
                 
                 onAddEdge({
                   id: 'temp-id', // Will be set in parent
@@ -249,12 +259,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
         
         {/* Render the appropriate input type for editable fields */}
         {isInput && (
-          <div className="ml-2 flex-grow">
+          <div className="ml-2 flex-grow" onClick={(e) => e.stopPropagation()}>
             {field.type === 'string' && !field.options && (
               <input 
                 type="text" 
                 className="w-full p-1 text-sm border rounded"
                 placeholder="Text value"
+                value={field.value || ""}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
@@ -281,6 +293,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 type="number" 
                 className="w-full p-1 text-sm border rounded"
                 placeholder="0"
+                value={field.value || ""}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
@@ -305,6 +319,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
             {field.type === 'boolean' && (
               <select 
                 className="w-full p-1 text-sm border rounded"
+                value={field.value === true ? "true" : "false"}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
@@ -333,11 +349,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
               <input 
                 type="file" 
                 className="w-full p-1 text-sm"
+                onMouseDown={(e) => e.stopPropagation()}
               />
             )}
             {field.options && (
               <select 
                 className="w-full p-1 text-sm border rounded"
+                value={field.value || ""}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
@@ -373,14 +392,20 @@ const Workspace: React.FC<WorkspaceProps> = ({
   // Helper to render a connection line
   const renderConnectionLine = () => {
     if (!connectionStart) return null;
-    
+
     const startPosition = fieldPositions[connectionStart.fieldId];
     if (!startPosition) return null;
-    
-    const path = `M ${startPosition.x} ${startPosition.y} L ${mousePosition.x} ${mousePosition.y}`;
-    
+
+    const { x: startX, y: startY } = startPosition;
+    const { x: mouseX, y: mouseY } = mousePosition;
+    const path = `M${startX},${startY} L${mouseX},${mouseY}`;
+
     return (
-      <svg className="absolute inset-0 pointer-events-none z-10">
+      <svg 
+        className="absolute inset-0 pointer-events-none z-10" 
+        width="100%" 
+        height="100%"
+      >
         <path
           d={path}
           stroke="#666"
@@ -392,51 +417,69 @@ const Workspace: React.FC<WorkspaceProps> = ({
     );
   };
 
-  // Helper to render edge connections
+  // Helper to render edge connections with delete icon
   const renderEdges = () => {
     return (
-      <svg className="absolute inset-0 pointer-events-none z-0">
+      <svg
+        className="absolute inset-0 z-10"
+        width="100%"
+        height="100%"
+        style={{ pointerEvents: 'none' }}
+      >
+        <defs>
+          <marker 
+            id="arrow"
+            markerWidth="10" 
+            markerHeight="10" 
+            refX="10" 
+            refY="3" 
+            orient="auto"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#666" />
+          </marker>
+        </defs>
         {edges.map(edge => {
           const sourcePos = fieldPositions[edge.sourceHandle];
           const targetPos = fieldPositions[edge.targetHandle];
-          
-          if (!sourcePos || !targetPos) return null;
-          
-          // Create a bezier curve
-          const dx = Math.abs(targetPos.x - sourcePos.x);
-          const bezierX = dx / 2;
-          
-          const path = `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x + bezierX} ${sourcePos.y}, ${targetPos.x - bezierX} ${targetPos.y}, ${targetPos.x} ${targetPos.y}`;
-          
+
+          if (!sourcePos || !targetPos) {
+            return null;
+          }
+
+          // Calculate midpoint coordinates for the delete icon
+          const midX = (sourcePos.x + targetPos.x) / 2;
+          const midY = (sourcePos.y + targetPos.y) / 2;
+
           return (
             <g key={edge.id}>
-              <path
-                d={path}
+              <line
+                x1={sourcePos.x}
+                y1={sourcePos.y}
+                x2={targetPos.x}
+                y2={targetPos.y}
                 stroke="#666"
                 strokeWidth="2"
-                fill="none"
+                strokeDasharray="5,5"
+                markerEnd="url(#arrow)"
+                style={{ pointerEvents: 'none' }}
               />
-              {/* Add delete button near the middle of the edge */}
-              <g 
-                transform={`translate(${(sourcePos.x + targetPos.x) / 2 - 8}, ${(sourcePos.y + targetPos.y) / 2 - 8})`}
-                className="cursor-pointer"
-                onClick={() => onRemoveEdge(edge.id)}
+              <g
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveEdge(edge.id);
+                }}
+                style={{ cursor: 'pointer', pointerEvents: 'all' }}
               >
-                <circle 
-                  cx="8" 
-                  cy="8" 
-                  r="8" 
-                  fill="white" 
-                  stroke="#666"
-                />
-                <text 
-                  x="8" 
-                  y="12" 
-                  fontSize="12" 
-                  textAnchor="middle" 
+                <circle cx={midX} cy={midY} r="10" fill="white" stroke="#666" strokeWidth="1" />
+                <text
+                  x={midX}
+                  y={midY + 4}
+                  textAnchor="middle"
                   fill="#666"
+                  fontSize="12"
+                  fontWeight="bold"
                 >
-                  ×
+                  x
                 </text>
               </g>
             </g>
