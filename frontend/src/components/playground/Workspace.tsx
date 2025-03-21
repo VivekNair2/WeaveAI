@@ -246,12 +246,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
         
         {/* Render the appropriate input type for editable fields */}
         {isInput && (
-          <div className="ml-2 flex-grow">
+          <div className="ml-2 flex-grow" onClick={(e) => e.stopPropagation()}>
             {field.type === 'string' && !field.options && (
               <input 
                 type="text" 
                 className="w-full p-1 text-sm border rounded"
                 placeholder="Text value"
+                value={field.value || ""}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
@@ -278,6 +280,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 type="number" 
                 className="w-full p-1 text-sm border rounded"
                 placeholder="0"
+                value={field.value || ""}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
@@ -302,6 +306,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
             {field.type === 'boolean' && (
               <select 
                 className="w-full p-1 text-sm border rounded"
+                value={field.value === true ? "true" : "false"}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
@@ -330,11 +336,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
               <input 
                 type="file" 
                 className="w-full p-1 text-sm"
+                onMouseDown={(e) => e.stopPropagation()}
               />
             )}
             {field.options && (
               <select 
                 className="w-full p-1 text-sm border rounded"
+                value={field.value || ""}
+                onMouseDown={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   setNodes(prev => 
                     prev.map(n => 
