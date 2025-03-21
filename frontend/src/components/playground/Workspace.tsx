@@ -356,13 +356,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
   return (
     <div 
       ref={workspaceRef}
-      className="flex-1 h-full relative overflow-hidden bg-slate-50 p-4"
+      className="flex-1 h-full relative overflow-hidden bg-gray-100 p-4"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       <div className="absolute inset-0 grid grid-cols-[repeat(40,minmax(25px,1fr))] grid-rows-[repeat(40,minmax(25px,1fr))] opacity-20 pointer-events-none">
         {Array.from({ length: 1600 }).map((_, i) => (
-          <div key={i} className="border-[0.5px] border-gray-200" />
+          <div key={i} className="border-[0.5px] border-gray-300" />
         ))}
       </div>
       
@@ -376,7 +376,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
       {nodes.map((node) => (
         <div
           key={node.id}
-          className="absolute bg-white rounded-lg shadow-lg border border-gray-300 w-90 p-4 cursor-move select-none"
+          className="absolute bg-white rounded-lg shadow-xs shadow-black border border-gray-200 w-90 p-4 cursor-move select-none"
           style={{
             left: `${node.position.x}px`,
             top: `${node.position.y}px`,
@@ -540,15 +540,24 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 <h4 className="text-sm font-semibold text-gray-600 mb-2">Outputs</h4>
                 <div className="space-y-2">
                   {node.data.outputs.map((output) => (
-                    <div key={output.id} className="flex items-center space-x-2">
-                      <label className="text-sm text-gray-700 flex-1">{output.name}</label>
-                      <div
-                        className={`w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 ${snapFieldId === output.id ? 'ring-2 ring-blue-400' : ''}`}
-                        data-field-id={output.id}
-                        data-node-id={node.id}
-                        data-field-type="output"
-                        onMouseDown={(e) => handleFieldMouseDown(e, node.id, output)}
-                      />
+                    <div key={output.id}>
+                      <div className="flex items-center space-x-2">
+                        <label className="text-sm text-gray-700 flex-1">{output.name}</label>
+                        <div
+                          className={`w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 ${
+                            snapFieldId === output.id ? 'ring-2 ring-blue-400' : ''
+                          }`}
+                          data-field-id={output.id}
+                          data-node-id={node.id}
+                          data-field-type="output"
+                          onMouseDown={(e) => handleFieldMouseDown(e, node.id, output)}
+                        />
+                      </div>
+                      {output.display && (
+                        <div className="mt-2 p-2 border border-gray-300 rounded text-sm">
+                          {output.value || <span className="text-gray-500">No output</span>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -5,9 +5,15 @@ interface SidebarProps {
 }
 
 const nodeTypes = [
-  { id: 'text-agent', label: 'Text Agent', icon: '💬' },
-  { id: 'voice-agent', label: 'Voice Agent', icon: '🎤' },
-  { id: 'csv-agent', label: 'CSV Agent', icon: '📂' },
+  { id: 'Text-Agent', label: 'Text Agent', icon: '💬' },
+  { id: 'Voice-Agent', label: 'Voice Agent', icon: '🎤' },
+  { id: 'CSV-Agent', label: 'CSV Agent', icon: '📂' },
+  { id: 'Email-Tool', label: 'Email Tool', icon: '✉️' },
+  { id: 'Text-Input-Tool', label: 'Text Input Tool', icon: '📝' },
+  { id: 'File-Input-Tool', label: 'File Input Tool', icon: '📎' },
+  { id: 'Text-Output-Tool', label: 'Text Output Tool', icon: '✏️' },
+  { id: 'TTS-Component', label: 'TTS Component', icon: '🔊' },
+  { id: 'Knowledge-Base', label: 'Knowledge Base', icon: '📚' }
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ onAddNode }) => {

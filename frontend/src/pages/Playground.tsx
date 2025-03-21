@@ -3,48 +3,8 @@ import Sidebar from '../components/playground/Sidebar';
 import Workspace from '../components/playground/Workspace';
 import { NodeData, EdgeData, DataType } from '../types/nodeTypes';
 
-// Node templates with predefined input/output fields
 const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
-  'input': {
-    inputs: [],
-    outputs: [
-      { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output' }
-    ]
-  },
-  'output': {
-    inputs: [
-      { id: 'input-1', name: 'Input', type: 'string', fieldType: 'input' }
-    ],
-    outputs: []
-  },
-  'processor': {
-    inputs: [
-      { id: 'input-1', name: 'Text Input', type: 'string', fieldType: 'input' },
-      { id: 'input-2', name: 'Number Input', type: 'number', fieldType: 'input' }
-    ],
-    outputs: [
-      { id: 'output-1', name: 'Result', type: 'string', fieldType: 'output' }
-    ]
-  },
-  'transformer': {
-    inputs: [
-      { id: 'input-1', name: 'Source', type: 'string', fieldType: 'input' },
-      { id: 'input-2', name: 'Options', type: 'string', fieldType: 'input', options: ['Option 1', 'Option 2', 'Option 3'] }
-    ],
-    outputs: [
-      { id: 'output-1', name: 'Transformed', type: 'string', fieldType: 'output' },
-      { id: 'output-2', name: 'Metadata', type: 'object', fieldType: 'output' }
-    ]
-  },
-  'connector': {
-    inputs: [
-      { id: 'input-1', name: 'File', type: 'file', fieldType: 'input' }
-    ],
-    outputs: [
-      { id: 'output-1', name: 'Data', type: 'array', fieldType: 'output' }
-    ]
-  },
-  "text-agent": {
+  "Text-Agent": {
     inputs: [
       { id: 'input-1', name: 'Tools', type: 'string', fieldType: 'input' },
       { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
@@ -56,7 +16,7 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
       { id: 'output-2', name: 'Output', type: 'string', fieldType: 'output' }
     ]
   },
-  "voice-agent": {
+  "Voice-Agent": {
     inputs: [
       { id: 'input-1', name: 'LLM', type: 'string', fieldType: 'input' },
       { id: 'input-2', name: 'STT', type: 'string', fieldType: 'input' },
@@ -65,17 +25,75 @@ const nodeTemplates: Record<string, { inputs: any[], outputs: any[] }> = {
       { id: 'input-5', name: 'Instructions', type: 'string', fieldType: 'input' },
       { id: 'input-6', name: 'To Phone Number', type: 'string', fieldType: 'input' }
     ],
-    outputs: [
-
-    ]
+    outputs: []
   },
-  "csv-agent": {
+  "CSV-Agent": {
     inputs: [
       { id: 'input-1', name: 'Input Type', type: 'string', fieldType: 'input', options: ['CSV', 'PDF'] },
-      { id: 'input-2', name: 'PDF/CSV Input', type: 'file', fieldType: 'input' },
-      { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
+      { id: 'input-2', name: 'File', type: 'file', fieldType: 'input' },
+      { id: 'input-3', name: 'Instructions', type: 'string', fieldType: 'input' }
     ],
     outputs: []
+  },
+  // New Email Tool
+  "Email-Tool": {
+    inputs: [
+      { id: 'input-1', name: 'Sender Mail', type: 'string', fieldType: 'input' },
+      { id: 'input-2', name: 'Passkey', type: 'string', fieldType: 'input' },
+      { id: 'input-3', name: "Sender's Name", type: 'string', fieldType: 'input' },
+      { id: 'input-4', name: "Receiver's Email", type: 'string', fieldType: 'input' },
+      { id: 'input-5', name: "Body", type: 'string', fieldType: 'input' }
+    ],
+    outputs: [
+      { id: 'output-1', name: 'Status', type: 'string', fieldType: 'output' }
+    ]
+  },
+  // New Text Input Tool
+  "Text-Input-Tool": {
+    inputs: [
+      { id: 'input-1', name: 'Text', type: 'string', fieldType: 'input' }
+    ],
+    outputs: [
+      { id: 'output-1', name: 'Text', type: 'string', fieldType: 'output' }
+    ]
+  },
+  // New File Input Tool
+  "File-Input-Tool": {
+    inputs: [
+      { id: 'input-1', name: 'File', type: 'file', fieldType: 'input' }
+    ],
+    outputs: [
+      { id: 'output-1', name: 'File', type: 'file', fieldType: 'output' }
+    ]
+  },
+  // New Text Output Tool
+  "Text-Output-Tool": {
+    inputs: [
+      { id: 'input-1', name: 'Text', type: 'string', fieldType: 'input' }
+    ],
+    outputs: [
+      { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output', display: true }
+    ]
+  },
+  // New TTS Component
+  "TTS-Component": {
+    inputs: [
+      { id: 'input-1', name: 'Service', type: 'string', fieldType: 'input', options: ['OpenAI', 'ElevenLabs', 'Deepgram'] },
+      { id: 'input-2', name: 'API Key', type: 'string', fieldType: 'input' },
+      { id: 'input-3', name: 'Text', type: 'string', fieldType: 'input' }
+    ],
+    outputs: [
+      { id: 'output-1', name: 'Audio', type: 'string', fieldType: 'output', display: true }
+    ]
+  },
+  // New Knowledge Base Component
+  "Knowledge-Base": {
+    inputs: [
+      { id: 'input-1', name: 'File', type: 'file', fieldType: 'input' }
+    ],
+    outputs: [
+      { id: 'output-1', name: 'Content', type: 'string', fieldType: 'output', display: true }
+    ]
   }
 };
 

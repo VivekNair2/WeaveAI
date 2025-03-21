@@ -10,6 +10,7 @@ export interface NodeField {
   name: string;
   type: DataType;
   fieldType: 'input' | 'output';
+  display: string;
   value?: any;
   options?: string[]; // For dropdown type
 }
