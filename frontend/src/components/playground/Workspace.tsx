@@ -184,7 +184,16 @@ const Workspace: React.FC<WorkspaceProps> = ({
           // Find the nearest input/output field
           const fieldElement = targetElement.closest('[data-field-id]');
           
-          if (fieldElement && connectionStart) {
+          // Use the current connection data from closure instead of the state
+          const currentConnection = {
+            nodeId,
+            fieldId: field.id,
+            type: fieldType
+          };
+          
+          console.log("Current connection:", currentConnection);
+          
+          if (fieldElement && currentConnection) {
             const targetFieldId = fieldElement.getAttribute('data-field-id');
             const targetNodeId = fieldElement.getAttribute('data-node-id');
             const targetFieldType = fieldElement.getAttribute('data-field-type');
@@ -192,15 +201,15 @@ const Workspace: React.FC<WorkspaceProps> = ({
             if (targetFieldId && targetNodeId && targetFieldType) {
               // Make sure we're connecting output -> input
               const isValidConnection = 
-                (connectionStart.type === 'output' && targetFieldType === 'input') ||
-                (connectionStart.type === 'input' && targetFieldType === 'output');
+                (currentConnection.type === 'output' && targetFieldType === 'input') ||
+                (currentConnection.type === 'input' && targetFieldType === 'output');
               
-              if (isValidConnection && targetNodeId !== connectionStart.nodeId) {
+              if (isValidConnection && targetNodeId !== currentConnection.nodeId) {
                 // Determine source and target based on which is output and which is input
-                const source = connectionStart.type === 'output' ? connectionStart.nodeId : targetNodeId;
-                const sourceHandle = connectionStart.type === 'output' ? connectionStart.fieldId : targetFieldId;
-                const target = connectionStart.type === 'output' ? targetNodeId : connectionStart.nodeId;
-                const targetHandle = connectionStart.type === 'output' ? targetFieldId : connectionStart.fieldId;
+                const source = currentConnection.type === 'output' ? currentConnection.nodeId : targetNodeId;
+                const sourceHandle = currentConnection.type === 'output' ? currentConnection.fieldId : targetFieldId;
+                const target = currentConnection.type === 'output' ? targetNodeId : currentConnection.nodeId;
+                const targetHandle = currentConnection.type === 'output' ? targetFieldId : currentConnection.fieldId;
                 
                 onAddEdge({
                   id: 'temp-id', // Will be set in parent
