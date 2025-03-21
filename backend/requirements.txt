@@ -8,3 +8,8 @@ duckdb
 openai
 twilio
 firecrawl
+pypdf
+sqlalchemy
+psycopg2
+pgvector
+chromadb
