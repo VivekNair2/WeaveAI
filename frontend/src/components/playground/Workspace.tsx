@@ -177,6 +177,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
     if ((fieldType === 'input' && connectionStart !== null && connectionStart.type === 'output') ||
         fieldType === 'output') {
 
+      // Calculate and set initial mouse position from the click event
+      const workspaceRect = workspaceRef.current?.getBoundingClientRect();
+      if (workspaceRect) {
+        const initialX = e.clientX - workspaceRect.left;
+        const initialY = e.clientY - workspaceRect.top;
+        setMousePosition({ x: initialX, y: initialY });
+      }
+
       setConnectionStart({
         nodeId,
         fieldId: field.id,
