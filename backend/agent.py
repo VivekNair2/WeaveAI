@@ -39,6 +39,7 @@ class CSVAgent:
         self.csv=file_path
         self.agent = Agent(
         model=self.model,
+        knowledge=
         tools=[CsvTools(csvs=[self.csv])],
         markdown=True,
         show_tool_calls=True,
