@@ -7,6 +7,7 @@ from agno.storage.sqlite import SqliteStorage
 from agno.utils.log import logger
 from agno.utils.pprint import pprint_run_response
 import time
+import os
 from fastapi import UploadFile
 
 class CustomerData(BaseModel):
@@ -30,7 +31,7 @@ class MarketingEmailWorkflow(Workflow):
     def __init__(
         self,
         session_id: str,
-        csv_file: UploadFile,
+        csv_file: str,
         sender_email: str,
         sender_name: str,
         sender_passkey: str,
@@ -39,14 +40,20 @@ class MarketingEmailWorkflow(Workflow):
         **kwargs
     ):
         super().__init__(session_id=session_id, *args, **kwargs)
-        self.csv_file = csv_file
+        # Handle file path resolution within data directory
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+        if not os.path.isabs(csv_file):
+            self.csv_file_path = os.path.join(data_dir, csv_file)
+        else:
+            self.csv_file_path = csv_file
+
         self.sender_email = sender_email
         self.sender_name = sender_name
         self.sender_passkey = sender_passkey
         self.model = model
 
         # Initialize CSV Agent for reading customer data
-        self.csv_agent = CSVAgent(model=self.model, file=self.csv_file)
+        self.csv_agent = CSVAgent(model=self.model, file_path=self.csv_file_path)
 
     def run(
         self,
@@ -213,8 +220,7 @@ class MarketingEmailWorkflow(Workflow):
         # Initialize TextAgent for content generation
         text_agent = TextAgent(
             model=self.model,
-            instructions="You are an expert marketing copywriter. Generate personalized email content that is engaging, professional, and tailored to the recipient's profile.",
-            tools=[]
+            instructions="You are an expert marketing copywriter. Generate personalized email content that is engaging, professional, and tailored to the recipient's profile."
         )
         
         # Prepare the prompt for content generation
@@ -223,6 +229,7 @@ class MarketingEmailWorkflow(Workflow):
         - Recipient's Professional Background: {customer.description}
         - Company Name: {company_name}
         - Product/Service Description: {product_description}
+        -Sender's Name: {self.sender_name}
         
         The email should:
         1. Have an engaging subject line

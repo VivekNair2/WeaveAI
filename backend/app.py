@@ -39,9 +39,12 @@ def text_agent(request: QueryRequest):
     return {"response": agent.run_agent(query_text)}
 
 @app.post("/csv_agent")
-def csv_agent(model: str = Form(...), query: str = Form(...), file: UploadFile = File(...)):
-    agent = CSVAgent(model, file)
-    return {"response": agent.run_agent(query)}
+def csv_agent(model: str = Form(...), query: str = Form(...), file_path: str = Form(...)):
+    try:
+        agent = CSVAgent(model, file_path)
+        return {"response": agent.run_agent(query)}
+    except ValueError as e:
+        return {"error": str(e)}, 404
 
 @app.post("/rag_agent")
 def rag_agent(model: str = Form(...), query: str = Form(...), file: UploadFile = File(...)):
@@ -80,7 +83,7 @@ def workflow_agent(
     use_cached_results: bool = Form(True),
     max_retries: int = Form(3),
     retry_delay: int = Form(5),
-    csv_file: UploadFile = File(...)
+    csv_file: str = Form(...)
 ):
     workflow = MarketingEmailWorkflow(
         session_id=session_id,

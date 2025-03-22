@@ -2,7 +2,7 @@ from typing import Dict, Iterator, Optional
 from textwrap import dedent
 from agno.workflow import RunEvent, RunResponse, Workflow
 from pydantic import BaseModel, Field
-from agent import CSVAgent, EmailAgent
+from agent import CSVAgent, EmailAgent, TextAgent
 from agno.storage.sqlite import SqliteStorage
 from agno.utils.log import logger
 from agno.utils.pprint import pprint_run_response
@@ -204,34 +204,32 @@ class MarketingEmailWorkflow(Workflow):
             raise
 
     def generate_email_content(self, customer: CustomerData, company_name: str, product_description: str) -> str:
-        """Generate personalized email content based on customer data."""
-        # Sanitize inputs to prevent injection
-        safe_name = customer.name.replace('"', '').replace("'", '')
-        safe_company = company_name.replace('"', '').replace("'", '')
+        """Generate personalized email content using TextAgent based on customer data."""
+        # Initialize TextAgent for content generation
+        text_agent = TextAgent(
+            model=self.model,
+            instructions="You are an expert marketing copywriter. Generate personalized email content that is engaging, professional, and tailored to the recipient's profile."
+        )
         
-        # Create a more engaging subject line
-        subject = f"Exclusive AI Solutions for {safe_name} at {customer.description.split('.')[0]}"
+        # Prepare the prompt for content generation
+        prompt = f"""Generate a marketing email with the following details:
+        - Recipient's Name: {customer.name}
+        - Recipient's Professional Background: {customer.description}
+        - Company Name: {company_name}
+        - Product/Service Description: {product_description}
+        
+        The email should:
+        1. Have an engaging subject line
+        2. Be personalized based on the recipient's background
+        3. Highlight how our solutions address their specific needs
+        4. Include a clear call to action
+        5. Maintain a professional yet friendly tone
+        
+        Format the email with proper structure including subject line, greeting, body, and signature."""
         
         # Generate personalized content
-        return f"""Subject: {subject}
-
-Dear {safe_name},
-
-I hope this email finds you well. As a valued professional {customer.description}, I wanted to personally reach out about how {safe_company} can enhance your workplace experience.
-
-{product_description}
-
-Given your role and location, I believe our solutions could specifically help you:
-1. Optimize your workspace efficiency
-2. Enhance decision-making processes
-3. Streamline daily operations
-
-Would you be interested in a brief demonstration of how our AI solutions can benefit your specific work environment?
-
-Best regards,
-{safe_company} Team
-
-P.S. We're offering a special pilot program for select customers in your area."""
+        email_content = text_agent.run_agent(prompt)
+        return email_content
 
     def get_cached_results(self, company_name: str) -> Optional[str]:
         """Retrieve cached results for the company's campaign."""
@@ -258,10 +256,15 @@ if __name__ == "__main__":
         print(f"Error: Missing required environment variables: {', '.join(missing_vars)}")
         sys.exit(1)
 
-    # Get CSV file path
-    csv_file = "sample_marketing.csv"  # Use the correct CSV file
-    if not os.path.exists(csv_file):
-        print(f"Error: File {csv_file} not found")
+    # Get CSV file path from user
+    csv_file = input("Enter the path to your CSV file: ").strip()
+    if not csv_file:
+        print("Error: CSV file path is required")
+        sys.exit(1)
+
+    # Validate file path
+    if not os.path.isfile(csv_file):
+        print(f"Error: File {csv_file} not found or is not a file")
         sys.exit(1)
 
     # Get campaign details
@@ -271,7 +274,7 @@ if __name__ == "__main__":
     # Initialize workflow with proper storage configuration
     workflow = MarketingEmailWorkflow(
         session_id=f"marketing-campaign-{company_name.lower().replace(' ', '-')}",
-        csv_file_path=os.path.join(os.path.dirname(__file__), csv_file),
+        csv_file_path=os.path.abspath(csv_file),
         sender_email=os.getenv("SENDER_EMAIL"),
         sender_name=os.getenv("SENDER_NAME"),
         sender_passkey=os.getenv("SENDER_PASSKEY"),
