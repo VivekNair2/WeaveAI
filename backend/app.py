@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agent import TextAgent, RAGAgent, WebAgent, CSVAgent, ZoomAgent
 from workflow import MarketingEmailWorkflow
@@ -8,6 +9,13 @@ import os
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 class QueryRequest(BaseModel):
     model: str
     query: str
@@ -71,6 +79,7 @@ def zoom_agent(request: ZoomRequest):
 @app.post("/voice_agent")
 def voice_agent():
     os.system(f'lk dispatch create --new-room --agent-name outbound-caller --metadata +917769915068')
+    return {"response": "Voice agent has been dispatched."}
 
 @app.post("/workflow_agent")
 def workflow_agent(
