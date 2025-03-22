@@ -8,8 +8,9 @@ interface WorkspaceProps {
   onAddEdge: (edge: EdgeData) => void;
   onRemoveEdge: (edgeId: string) => void;
   onNodeDrop?: (nodeType: string, position: { x: number, y: number }) => void;
+  onSaveTemplate?: () => void;
+  onViewTemplates?: () => void; // Add this new prop
 }
-
 
 const Workspace: React.FC<WorkspaceProps> = ({ 
   nodes, 
@@ -17,9 +18,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
   edges, 
   onAddEdge, 
   onRemoveEdge,
-  onNodeDrop
+  onNodeDrop,
+  onSaveTemplate,
+  onViewTemplates
 }) => {
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const transformContainerRef = useRef<HTMLDivElement>(null);
   const draggingNodeRef = useRef<string | null>(null);
   const [connectionStart, setConnectionStart] = useState<{
     nodeId: string, 
@@ -29,12 +33,20 @@ const Workspace: React.FC<WorkspaceProps> = ({
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [fieldPositions, setFieldPositions] = useState<Record<string, { x: number, y: number }>>({});
   const [snapFieldId, setSnapFieldId] = useState<string | null>(null);
+  
+  // Zoom and pan state
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 2;
 
   useEffect(() => {
     console.log("Edges are:",edges)
   }, [edges])
   
-  // Update field positions when nodes change
+  // Update field positions when nodes change or when zoom/pan changes
   useEffect(() => {
     const updateFieldPositions = () => {
       const newPositions: Record<string, { x: number, y: number }> = {};
@@ -45,9 +57,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
         const workspaceRect = workspaceRef.current?.getBoundingClientRect();
         
         if (fieldId && workspaceRect) {
+          // Convert screen coordinates to workspace logical coordinates
           newPositions[fieldId] = {
-            x: rect.left + rect.width / 2 - workspaceRect.left,
-            y: rect.top + rect.height / 2 - workspaceRect.top
+            x: (rect.left + rect.width / 2 - workspaceRect.left) / scale - offset.x,
+            y: (rect.top + rect.height / 2 - workspaceRect.top) / scale - offset.y
           };
         }
       });
@@ -67,7 +80,112 @@ const Workspace: React.FC<WorkspaceProps> = ({
     });
     
     return () => observer.disconnect();
-  }, [nodes]);
+  }, [nodes, scale, offset]);
+
+  // Modify your useEffect to add a non-passive wheel event listener
+  useEffect(() => {
+    const currentWorkspaceRef = workspaceRef.current;
+    
+    // This non-passive event listener will properly prevent default browser zoom
+    const handleWheelEvent = (e: WheelEvent) => {
+      e.preventDefault();
+      
+      // Calculate zoom delta based on wheel direction
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      
+      // Calculate new scale with limits
+      const newScale = Math.min(Math.max(scale + delta, MIN_ZOOM), MAX_ZOOM);
+      
+      // Get cursor position relative to the workspace
+      const workspaceRect = currentWorkspaceRef?.getBoundingClientRect();
+      if (!workspaceRect) return;
+      
+      const mouseX = e.clientX - workspaceRect.left;
+      const mouseY = e.clientY - workspaceRect.top;
+      
+      // Calculate zoom center point in workspace coordinates
+      const zoomCenterX = mouseX / scale - offset.x;
+      const zoomCenterY = mouseY / scale - offset.y;
+      
+      // Calculate new offset to zoom toward cursor position
+      const newOffsetX = -zoomCenterX * (newScale - scale) / newScale + offset.x;
+      const newOffsetY = -zoomCenterY * (newScale - scale) / newScale + offset.y;
+      
+      setScale(newScale);
+      setOffset({ x: newOffsetX, y: newOffsetY });
+    };
+    
+    // Add the wheel event listener with passive: false to ensure preventDefault works
+    if (currentWorkspaceRef) {
+      currentWorkspaceRef.addEventListener('wheel', handleWheelEvent, { passive: false });
+    }
+    
+    return () => {
+      if (currentWorkspaceRef) {
+        currentWorkspaceRef.removeEventListener('wheel', handleWheelEvent);
+      }
+    };
+  }, [scale, offset]);
+
+  // Keep this empty handler to avoid React warnings, but the actual work is done in the useEffect above
+  const handleWheel = (e: React.WheelEvent) => {
+    // No need to do anything here, the non-passive event listener handles it
+  };
+
+  // Pan handlers
+  const handlePanStart = (e: React.MouseEvent) => {
+    console.log("MouseDown detected", e.button);
+    
+    // Check if we clicked on a node or connection point
+    const isClickOnNode = (e.target as Element).closest('[data-node-id]');
+    const isClickOnField = (e.target as Element).closest('[data-field-id]');
+    
+    // Only start panning on empty areas with left click OR with middle mouse button anywhere
+    if (e.button === 1 || (e.button === 0 && !isClickOnNode && !isClickOnField)) {
+      e.preventDefault();
+      
+      setIsPanning(true);
+      console.log("Panning set to true");
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+      document.body.style.cursor = 'grabbing';
+      
+      const handlePanMoveDocument = (moveEvent: MouseEvent) => {
+        moveEvent.preventDefault();
+        const dx = (moveEvent.clientX - lastMousePos.current.x) / scale;
+        const dy = (moveEvent.clientY - lastMousePos.current.y) / scale;
+        
+        setOffset(prevOffset => ({
+          x: prevOffset.x + dx,
+          y: prevOffset.y + dy
+        }));
+        
+        lastMousePos.current = { x: moveEvent.clientX, y: moveEvent.clientY };
+      };
+      
+      const handlePanEndDocument = () => {
+        setIsPanning(false);
+        document.body.style.cursor = 'default';
+        document.removeEventListener('mousemove', handlePanMoveDocument);
+        document.removeEventListener('mouseup', handlePanEndDocument);
+      };
+      
+      // Add document-level event listeners for smooth panning
+      document.addEventListener('mousemove', handlePanMoveDocument);
+      document.addEventListener('mouseup', handlePanEndDocument);
+    }
+  };
+
+  // Keep these simpler component-level handlers
+  const handlePanMove = (e: React.MouseEvent) => {
+    // The document-level handler will take care of this
+    if (isPanning) {
+      e.preventDefault();
+    }
+  };
+
+  const handlePanEnd = () => {
+    // The document-level handler will take care of this
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -81,10 +199,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
     
     if (!nodeType) return;
     
-    // Get the position relative to the workspace
+    // Get the position relative to the workspace and adjust for zoom/pan
     const workspaceRect = workspaceRef.current?.getBoundingClientRect();
-    const x = e.clientX - (workspaceRect?.left || 0);
-    const y = e.clientY - (workspaceRect?.top || 0);
+    if (!workspaceRect) return;
+    
+    // Convert screen coordinates to workspace logical coordinates
+    const x = (e.clientX - workspaceRect.left) / scale - offset.x;
+    const y = (e.clientY - workspaceRect.top) / scale - offset.y;
     
     // Pass the node type and position to the parent component
     onNodeDrop?.(nodeType, { x, y });
@@ -100,6 +221,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
          e.target.classList.contains('node-output'))) {
       return;
     }
+    
+    // Ignore if we're panning
+    if (isPanning) return;
     
     draggingNodeRef.current = nodeId;
     
@@ -125,11 +249,16 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!isDragging) return;
       
+      // Calculate delta in screen pixels
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
       
+      // Convert to workspace coordinates by dividing by scale
+      const dxWorkspace = dx / scale;
+      const dyWorkspace = dy / scale;
+      
       // Use transform for smooth animation instead of updating the state on every mouse move
-      nodeElement.style.transform = `translate(${dx}px, ${dy}px)`;
+      nodeElement.style.transform = `translate(${dxWorkspace}px, ${dyWorkspace}px)`;
     };
     
     const handleMouseUp = () => {
@@ -137,7 +266,6 @@ const Workspace: React.FC<WorkspaceProps> = ({
       isDragging = false;
       
       // Get the final position
-      const nodeStyle = getComputedStyle(nodeElement);
       const transform = nodeElement.style.transform;
       const matrix = new DOMMatrix(transform);
       
@@ -180,8 +308,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
       // Calculate and set initial mouse position from the click event
       const workspaceRect = workspaceRef.current?.getBoundingClientRect();
       if (workspaceRect) {
-        const initialX = e.clientX - workspaceRect.left;
-        const initialY = e.clientY - workspaceRect.top;
+        // Convert screen coordinates to workspace logical coordinates
+        const initialX = (e.clientX - workspaceRect.left) / scale - offset.x;
+        const initialY = (e.clientY - workspaceRect.top) / scale - offset.y;
         setMousePosition({ x: initialX, y: initialY });
       }
 
@@ -197,12 +326,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const workspaceRect = workspaceRef.current?.getBoundingClientRect();
         if (workspaceRect) {
-          const mx = moveEvent.clientX - workspaceRect.left;
-          const my = moveEvent.clientY - workspaceRect.top;
+          // Convert screen coordinates to workspace logical coordinates
+          const mx = (moveEvent.clientX - workspaceRect.left) / scale - offset.x;
+          const my = (moveEvent.clientY - workspaceRect.top) / scale - offset.y;
           setMousePosition({ x: mx, y: my });
 
           // Determine the candidate field to snap to (within threshold)
-          const snapDistance = 40;
+          const snapDistance = 40 / scale; // Adjust snap distance based on zoom
           let candidate: string | null = null;
           let minDistance = Infinity;
           Object.entries(fieldPositions).forEach(([fid, pos]) => {
@@ -220,12 +350,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
       };
 
       const handleMouseUp = (upEvent: MouseEvent) => {
-        // Capture the candidate from the local variable for connection logic
+        // Same connection logic as before
         const targetFieldIdCandidate = currentSnapCandidate;
-        setSnapFieldId(null); // Clear visual snapping feedback
-
-        const workspaceRect = workspaceRef.current?.getBoundingClientRect();
-        if (!workspaceRect) return;
+        setSnapFieldId(null);
 
         if (targetFieldIdCandidate) {
           const fieldElement = document.querySelector(`[data-field-id="${targetFieldIdCandidate}"]`);
@@ -252,7 +379,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 const targetHandle = currentConnection.type === 'output' ? targetFieldId : currentConnection.fieldId;
 
                 onAddEdge({
-                  id: 'temp-id', // Parent should update the actual edge id
+                  id: 'temp-id',
                   source,
                   sourceHandle,
                   target,
@@ -272,7 +399,6 @@ const Workspace: React.FC<WorkspaceProps> = ({
     }
   };
 
-
   // Helper to render a connection line
   const renderConnectionLine = () => {
     if (!connectionStart) return null;
@@ -282,6 +408,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
     const { x: startX, y: startY } = startPosition;
     const { x: mouseX, y: mouseY } = mousePosition;
+    
+    // Draw path in workspace coordinates
     const path = `M${startX},${startY} L${mouseX},${mouseY}`;
 
     return (
@@ -293,9 +421,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
         <path
           d={path}
           stroke="#666"
-          strokeWidth="2"
+          strokeWidth={2 / scale} // Adjust stroke width based on zoom
           fill="none"
-          strokeDasharray="5,5"
+          strokeDasharray={`${5 / scale},${5 / scale}`} // Adjust dash based on zoom
         />
       </svg>
     );
@@ -318,6 +446,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
           refX="8" 
           refY="3" 
           orient="auto"
+          markerUnits="userSpaceOnUse" // Prevents the marker from scaling with the line
         >
           <path d="M0,0 L0,6 L7,3 z" fill="#6366f1" />
         </marker>
@@ -342,8 +471,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 x2={targetPos.x}
                 y2={targetPos.y}
                 stroke="#6366f1"
-                strokeWidth="2"
-                strokeDasharray="5,5"
+                strokeWidth={2 / scale} // Adjust stroke width based on zoom
+                strokeDasharray={`${5 / scale},${5 / scale}`} // Adjust dash based on zoom
                 markerEnd="url(#arrow)"
                 style={{ pointerEvents: 'none' }}
               />
@@ -353,11 +482,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
                   onRemoveEdge(edge.id);
                 }}
                 style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                transform={`translate(${midX}, ${midY}) scale(${1/scale})`} // Scale the delete button inversely
               >
-                <circle cx={midX} cy={midY} r="10" fill="white" stroke="#f43f5e" strokeWidth="1.5" />
+                <circle cx="0" cy="0" r="10" fill="white" stroke="#f43f5e" strokeWidth="1.5" />
                 <text
-                  x={midX}
-                  y={midY + 4}
+                  x="0"
+                  y="4"
                   textAnchor="middle"
                   fill="#f43f5e"
                   fontSize="12"
@@ -373,128 +503,173 @@ const Workspace: React.FC<WorkspaceProps> = ({
     );
   };
 
+  const getZoomPercentage = () => Math.round(scale * 100);
+
   return (
     <div 
       ref={workspaceRef}
       className="flex-1 h-full relative overflow-hidden bg-slate-50 p-4 font-['Inter']"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onWheel={handleWheel}
+      onMouseDown={handlePanStart}
+      onMouseMove={handlePanMove}
+      onMouseUp={handlePanEnd}
+      onMouseLeave={handlePanEnd}
+      style={{ touchAction: 'none' }} // Prevent browser gesture handling
     >
-      <div className="absolute inset-0 grid grid-cols-[repeat(40,minmax(25px,1fr))] grid-rows-[repeat(40,minmax(25px,1fr))] opacity-15 pointer-events-none">
-        {Array.from({ length: 1600 }).map((_, i) => (
-          <div key={i} className="border-[0.5px] border-slate-300" />
-        ))}
+      {/* Templates buttons - update to include Browse Templates */}
+      <div className="absolute top-4 right-4 z-20 flex space-x-2">
+        <button
+          className="bg-white rounded-md shadow-sm px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1"
+          onClick={onViewTemplates}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+          </svg>
+          Go to Marketplace
+        </button>
+        <button
+          className="bg-white rounded-md shadow-sm px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1"
+          onClick={onSaveTemplate}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+            <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.12a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
+            <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+          </svg>
+          Save Template
+        </button>
       </div>
       
-      {/* Render connecting line when dragging */}
-      {connectionStart && renderConnectionLine()}
+      {/* Zoom indicator and controls */}
+      <div className="absolute bottom-4 right-4 flex gap-2 items-end z-20">
+  {/* Zoom percentage indicator */}
+  <div className="bg-white px-3 py-2 rounded-md shadow-sm text-sm border border-slate-200 flex items-center">
+    {getZoomPercentage()}%
+  </div>
+  
+  {/* Zoom controls */}
+  <div className="flex flex-col bg-white rounded-r-md shadow-sm">
+    <button 
+      className="px-2 py-1 border-b hover:bg-slate-100"
+      onClick={() => {
+        const newScale = Math.min(scale + 0.1, MAX_ZOOM);
+        setScale(newScale);
+      }}
+    >
+      +
+    </button>
+    <button 
+      className="px-2 py-1 hover:bg-slate-100"
+      onClick={() => {
+        const newScale = Math.max(scale - 0.1, MIN_ZOOM);
+        setScale(newScale);
+      }}
+    >
+      -
+    </button>
+  </div>
+</div>
       
-      {/* Render all edges */}
-      {renderEdges()}
-      
-      {/* Render nodes */}
-      {nodes.map((node) => (
-        <div
-          key={node.id}
-          className="absolute bg-white rounded-lg shadow-md border border-slate-200 w-90 p-5 cursor-move select-none hover:shadow-lg"
-          style={{
-            left: `${node.position.x}px`,
-            top: `${node.position.y}px`,
-            userSelect: 'none',
-          }}
-          onMouseDown={(e) => handleNodeDragStart(e, node.id)}
-          data-node-id={node.id}
-        >
-          {/* Node header */}
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
-            <div className="flex items-center">
-              <span className="text-2xl mr-3">
-                {node.type === 'text-agent' && '💬'}
-                {node.type === 'voice-agent' && '🎤'}
-                {node.type === 'csv-agent' && '📂'}
-              </span>
-              <span className="font-semibold text-slate-800 capitalize tracking-wide">{node.data.label}</span>
+      {/* Transform container */}
+<div 
+  ref={transformContainerRef}
+  className="absolute inset-0 origin-top-left"
+  style={{
+    transform: `scale(${scale}) translate(${offset.x}px, ${offset.y}px)`,
+    // Always keep pointer events active even when panning
+    pointerEvents: 'auto', 
+  }}
+>
+        {/* Background grid */}
+        <div className="absolute inset-0 grid grid-cols-[repeat(40,minmax(25px,1fr))] grid-rows-[repeat(40,minmax(25px,1fr))] opacity-15 pointer-events-none">
+          {Array.from({ length: 1600 }).map((_, i) => (
+            <div key={i} className="border-[0.5px] border-slate-300" />
+          ))}
+        </div>
+        
+        {/* Render connecting line when dragging */}
+        {connectionStart && renderConnectionLine()}
+        
+        {/* Render all edges */}
+        {renderEdges()}
+        
+        {/* Render nodes */}
+        {nodes.map((node) => (
+          <div
+            key={node.id}
+            className="absolute bg-white rounded-lg shadow-md border border-slate-200 w-90 p-5 cursor-move select-none hover:shadow-lg"
+            style={{
+              left: `${node.position.x}px`,
+              top: `${node.position.y}px`,
+              userSelect: 'none',
+            }}
+            onMouseDown={(e) => handleNodeDragStart(e, node.id)}
+            data-node-id={node.id}
+          >
+            {/* Node content remains the same as before */}
+            {/* Node header */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
+              <div className="flex items-center">
+                <span className="text-2xl mr-3">
+                  {node.type === 'text-agent' && '💬'}
+                  {node.type === 'voice-agent' && '🎤'}
+                  {node.type === 'csv-agent' && '📂'}
+                </span>
+                <span className="font-semibold text-slate-800 capitalize tracking-wide">{node.data.label}</span>
+              </div>
+              <button
+                className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-slate-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNodes(nodes.filter((n) => n.id !== node.id));
+                  // Remove any edges connected to this node
+                  edges.forEach((edge) => {
+                    if (edge.source === node.id || edge.target === node.id) {
+                      onRemoveEdge(edge.id);
+                    }
+                  });
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <button
-              className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-slate-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                setNodes(nodes.filter((n) => n.id !== node.id));
-                // Remove any edges connected to this node
-                edges.forEach((edge) => {
-                  if (edge.source === node.id || edge.target === node.id) {
-                    onRemoveEdge(edge.id);
-                  }
-                });
-              }}
-            >
-              ✕
-            </button>
-          </div>
 
-          {/* Node content */}
-          <div className="flex flex-col space-y-5">
-            {/* Input fields */}
-            {node.data.inputs.length > 0 && (
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 w-full">
-                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Inputs</h4>
-                <div className="flex flex-col gap-3">
-                  {node.data.inputs.map((input) => (
-                    <div
-                      key={input.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full"
-                    >
-                      {/* Connection dot with animation on hover/active */}
+            {/* Node content - inputs and outputs remain the same */}
+            <div className="flex flex-col space-y-5">
+              {/* Input fields */}
+              {node.data.inputs.length > 0 && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 w-full">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Inputs</h4>
+                  <div className="flex flex-col gap-3">
+                    {node.data.inputs.map((input) => (
                       <div
-                        className={`w-4 h-4 rounded-full bg-indigo-500 flex-shrink-0 transition-all duration-200 hover:scale-110 ${
-                          snapFieldId === input.id ? 'ring-2 ring-indigo-300 scale-110' : ''
-                        }`}
-                        data-field-id={input.id}
-                        data-node-id={node.id}
-                        data-field-type="input"
-                        onMouseDown={(e) => handleFieldMouseDown(e, node.id, input)}
-                      />
-                      {/* Label with fixed width */}
-                      <label className="text-sm font-medium text-slate-700 flex-shrink-0 w-24">
-                        {input.name}
-                      </label>
-                      {/* Render an input field only for supported types */}
-                      {input.type === 'string' && !input.options && (
-                        <input
-                          type="text"
-                          className="flex-grow p-1 text-sm border rounded w-full"
-                          placeholder="Enter value"
-                          value={input.value || ''}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onChange={(e) =>
-                            setNodes((prev) =>
-                              prev.map((n) =>
-                                n.id === node.id
-                                  ? {
-                                      ...n,
-                                      data: {
-                                        ...n.data,
-                                        inputs: n.data.inputs.map((i) =>
-                                          i.id === input.id ? { ...i, value: e.target.value } : i
-                                        ),
-                                      },
-                                    }
-                                  : n
-                              )
-                            )
-                          }
+                        key={input.id}
+                        className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full"
+                      >
+                        {/* Connection dot with animation on hover/active */}
+                        <div
+                          className={`w-4 h-4 rounded-full bg-indigo-500 flex-shrink-0 transition-all duration-200 hover:scale-110 ${
+                            snapFieldId === input.id ? 'ring-2 ring-indigo-300 scale-110' : ''
+                          }`}
+                          data-field-id={input.id}
+                          data-node-id={node.id}
+                          data-field-type="input"
+                          onMouseDown={(e) => handleFieldMouseDown(e, node.id, input)}
                         />
-                      )}
-                      {input.type === 'file' && (
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <span className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
-                            Browse
-                          </span>
+                        {/* Label with fixed width */}
+                        <label className="text-sm font-medium text-slate-700 flex-shrink-0 w-24">
+                          {input.name}
+                        </label>
+                        {/* Render an input field only for supported types */}
+                        {input.type === 'string' && !input.options && (
                           <input
-                            type="file"
-                            className="hidden"
-                            onChange={(e) => {
-                              const fileName = e.target.files?.[0]?.name || 'No file selected';
+                            type="text"
+                            className="flex-grow p-1 text-sm border rounded w-full"
+                            placeholder="Enter value"
+                            value={input.value || ''}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onChange={(e) =>
                               setNodes((prev) =>
                                 prev.map((n) =>
                                   n.id === node.id
@@ -503,90 +678,119 @@ const Workspace: React.FC<WorkspaceProps> = ({
                                         data: {
                                           ...n.data,
                                           inputs: n.data.inputs.map((i) =>
-                                            i.id === input.id ? { ...i, value: fileName } : i
+                                            i.id === input.id ? { ...i, value: e.target.value } : i
                                           ),
                                         },
                                       }
                                     : n
                                 )
-                              );
-                            }}
-                          />
-                          <span className="text-sm text-gray-500">
-                            {input.value || 'No file selected'}
-                          </span>
-                        </label>
-                      )}
-                      {input.options && (
-                        <select
-                          className="flex-grow p-1 text-sm border rounded w-full"
-                          value={input.value || ''}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onChange={(e) =>
-                            setNodes((prev) =>
-                              prev.map((n) =>
-                                n.id === node.id
-                                  ? {
-                                      ...n,
-                                      data: {
-                                        ...n.data,
-                                        inputs: n.data.inputs.map((i) =>
-                                          i.id === input.id ? { ...i, value: e.target.value } : i
-                                        ),
-                                      },
-                                    }
-                                  : n
                               )
-                            )
-                          }
-                        >
-                          <option value="">Select an option</option>
-                          {input.options.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      {/* For inputs with type "none", no input field is rendered */}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Output fields */}
-            {node.data.outputs.length > 0 && (
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Outputs</h4>
-                <div className="space-y-3">
-                  {node.data.outputs.map((output) => (
-                    <div key={output.id}>
-                      <div className="flex items-center space-x-2">
-                        <label className="text-sm font-medium text-slate-700 flex-1">{output.name}</label>
-                        <div
-                          className={`w-4 h-4 rounded-full bg-cyan-500 flex-shrink-0 transition-all duration-200 hover:scale-110 ${
-                            snapFieldId === output.id ? 'ring-2 ring-cyan-300 scale-110' : ''
-                          }`}
-                          data-field-id={output.id}
-                          data-node-id={node.id}
-                          data-field-type="output"
-                          onMouseDown={(e) => handleFieldMouseDown(e, node.id, output)}
-                        />
+                            }
+                          />
+                        )}
+                        {input.type === 'file' && (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <span className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+                              Browse
+                            </span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(e) => {
+                                const fileName = e.target.files?.[0]?.name || 'No file selected';
+                                setNodes((prev) =>
+                                  prev.map((n) =>
+                                    n.id === node.id
+                                      ? {
+                                          ...n,
+                                          data: {
+                                            ...n.data,
+                                            inputs: n.data.inputs.map((i) =>
+                                              i.id === input.id ? { ...i, value: fileName } : i
+                                            ),
+                                          },
+                                        }
+                                      : n
+                                  )
+                                );
+                              }}
+                            />
+                            <span className="text-sm text-gray-500">
+                              {input.value || 'No file selected'}
+                            </span>
+                          </label>
+                        )}
+                        {input.options && (
+                          <select
+                            className="flex-grow p-1 text-sm border rounded w-full"
+                            value={input.value || ''}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onChange={(e) =>
+                              setNodes((prev) =>
+                                prev.map((n) =>
+                                  n.id === node.id
+                                    ? {
+                                        ...n,
+                                        data: {
+                                          ...n.data,
+                                          inputs: n.data.inputs.map((i) =>
+                                            i.id === input.id ? { ...i, value: e.target.value } : i
+                                          ),
+                                        },
+                                      }
+                                    : n
+                                )
+                              )
+                            }
+                          >
+                            <option value="">Select an option</option>
+                            {input.options.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {/* For inputs with type "none", no input field is rendered */}
                       </div>
-                      {output.display && (
-                        <div className="mt-2 p-3 border border-slate-300 rounded-md text-sm bg-white">
-                          {output.value || <span className="text-slate-400 italic">No output</span>}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Output fields */}
+              {node.data.outputs.length > 0 && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Outputs</h4>
+                  <div className="space-y-3">
+                    {node.data.outputs.map((output) => (
+                      <div key={output.id}>
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm font-medium text-slate-700 flex-1">{output.name}</label>
+                          <div
+                            className={`w-4 h-4 rounded-full bg-cyan-500 flex-shrink-0 transition-all duration-200 hover:scale-110 ${
+                              snapFieldId === output.id ? 'ring-2 ring-cyan-300 scale-110' : ''
+                            }`}
+                            data-field-id={output.id}
+                            data-node-id={node.id}
+                            data-field-type="output"
+                            onMouseDown={(e) => handleFieldMouseDown(e, node.id, output)}
+                          />
+                        </div>
+                        {output.display && (
+                          <div className="mt-2 p-3 border border-slate-300 rounded-md text-sm bg-white">
+                            {output.value || <span className="text-slate-400 italic">No output</span>}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };

@@ -1,18 +1,18 @@
 import './App.css'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Playground from './pages/Playground'
-
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Playground from './pages/Playground';
+import Templates from './pages/MarketPlace';
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="">
-        <Routes>
-          <Route path="/" element={<Playground />} />
-        </Routes>
-      </div>
-    </BrowserRouter>
-  )
+    <Router>
+      <Routes>
+        <Route path="/playground" element={<Playground />} />
+        <Route path="/marketplace" element={<Templates />} />
+        <Route path="/" element={<Navigate to="/playground" replace />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;
