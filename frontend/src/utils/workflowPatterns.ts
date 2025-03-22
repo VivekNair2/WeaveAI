@@ -82,6 +82,51 @@ export const workflowPatterns: WorkflowPattern[] = [
     endpoint: 'http://localhost:8000/email_agent'
   },
   {
+    id: 'web-search',
+    name: 'Web Search Workflow',
+    requiredNodeTypes: [
+      'Web-Search-Tool',
+      'Text-Agent',
+      'Text-Input-Tool',
+      'End'
+    ],
+    connections: [
+      { 
+        nodeConnection: 'Text-Input-Tool→Text-Agent',
+        portConnection: 'Text→Query' 
+      },
+      { 
+        nodeConnection: 'Web-Search-Tool→Text-Agent',
+        portConnection: 'Tool→Tools' 
+      },
+      { 
+        nodeConnection: 'Text-Agent→End',
+        portConnection: 'Output→End' 
+      }
+    ],
+    endpoint: 'http://localhost:8000/web_agent'
+  },
+  {
+    id: 'text-agent',
+    name: 'Text Agent Workflow',
+    requiredNodeTypes: [
+      'Text-Agent',
+      'Text-Input-Tool',
+      'End'
+    ],
+    connections: [
+      { 
+        nodeConnection: 'Text-Input-Tool→Text-Agent',
+        portConnection: 'Text→Query' 
+      },
+      { 
+        nodeConnection: 'Text-Agent→End',
+        portConnection: 'Output→End' 
+      }
+    ],
+    endpoint: 'http://localhost:8000/text_agent'
+  },
+  {
     id: 'rag',
     name: 'RAG Workflow',
     requiredNodeTypes: [
@@ -105,6 +150,31 @@ export const workflowPatterns: WorkflowPattern[] = [
       }
     ],
     endpoint: 'http://localhost:8000/rag_agent'
+  },
+  {
+    id: 'csv-agent',
+    name: 'CSV Agent Workflow',
+    requiredNodeTypes: [
+      'CSV-Agent',
+      'File-Input-Tool',
+      'Text-Input-Tool',
+      'End'
+    ],
+    connections: [
+      { 
+        nodeConnection: 'File-Input-Tool→CSV-Agent',
+        portConnection: 'File→File' 
+      },
+      { 
+        nodeConnection: 'Text-Input-Tool→CSV-Agent',
+        portConnection: 'Text→Query' 
+      },
+      { 
+        nodeConnection: 'CSV-Agent→End',
+        portConnection: 'Output→End' 
+      }
+    ],
+    endpoint: 'http://localhost:8000/csv_agent'
   }
   // Add more workflow patterns as needed
 ];

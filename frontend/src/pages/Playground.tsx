@@ -35,9 +35,9 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
     inputs: [
       { id: 'input-1', name: 'Tools', type: 'tool', fieldType: 'none' },
       { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
-      { id: 'input-2', name: 'Query', type: 'none', fieldType: 'input' },
-      { id: 'input-3', name: 'LLM', type: 'string', fieldType: 'input', options: ['Groq', 'Gemini'] },
-      { id: 'input-4', name: 'API Key', type: 'string', fieldType: 'input' }
+      { id: 'input-3', name: 'Query', type: 'none', fieldType: 'input' },
+      { id: 'input-4', name: 'LLM', type: 'string', fieldType: 'input', options: ['Groq', 'Gemini'] },
+      { id: 'input-5', name: 'API Key', type: 'string', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output' },
@@ -62,11 +62,13 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
   "CSV-Agent": {
     inputs: [
       { id: 'input-1', name: 'File', type: 'none', fieldType: 'input' },
-      { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' }
+      { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
+      { id: 'input-3', name: 'Query', type: 'string', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'Personal Description', type: 'string', fieldType: 'output' },
       { id: 'output-2', name: 'Receiver Emails', type: 'string', fieldType: 'output' },
+      { id: 'output-3', name: 'Output', type: 'string', fieldType: 'output' },
     ],
     icon: BsFileEarmarkText
   },
@@ -124,7 +126,7 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
 
     ],
     outputs: [
-      { id: 'output-1', name: 'Search Results', type: 'string', fieldType: 'output', display: false }
+      { id: 'output-1', name: 'Tool', type: 'string', fieldType: 'output', display: false }
     ],
     icon: FiSearch
   },
