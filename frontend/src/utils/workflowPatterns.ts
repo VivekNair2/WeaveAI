@@ -175,6 +175,21 @@ export const workflowPatterns: WorkflowPattern[] = [
       }
     ],
     endpoint: 'http://localhost:8000/csv_agent'
+  },
+  {
+    id: 'zoom-tool',
+    name: 'Zoom Agent',
+    requiredNodeTypes: [
+      'Zoom-Tool',
+      'End'
+    ],
+    connections: [
+      {
+        nodeConnection: 'Zoom-Tool→End',
+        portConnection: 'Output→End'
+      }
+    ],
+    endpoint: 'http://localhost:8000/zoom_agent'
   }
   // Add more workflow patterns as needed
 ];

@@ -139,6 +139,15 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
     ],
     icon: BiMessageDetail
   },
+  "Zoom-Tool": {   // new Zoom-Tool template
+    inputs: [
+        { id: 'input-1', name: 'Query', type: 'string', fieldType: 'input' }
+    ],
+    outputs: [
+        { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output', display: false }
+    ],
+    icon: AiOutlineSound
+},
 };
 
 const Playground = () => {
@@ -517,6 +526,23 @@ const Playground = () => {
           
           // Call the new workflow agent endpoint using the helper function
           result = await sendWorkflowAgentRequest(workflowParams);
+          break;
+        }
+        case 'zoom-tool': { // New Zoom Agent workflow pattern branch
+          const zoomToolNode = nodes.find(node => node.type === 'Zoom-Tool');
+          if (!zoomToolNode) {
+            throw new Error("Missing Zoom-Tool node for Zoom Agent workflow");
+          }
+          const queryValue = zoomToolNode.data.inputs.find(input => input.name === 'Query')?.value || '';
+          // Hardcoded parameters for the Zoom Agent API
+          const payload = {
+            account_id: "pXfzC-OvToyumpB3e5G5zg",
+            client_id: "ZhVZkp8xSKuRepA2HCmmg",
+            client_secret: "BcQHU2Tt64ud3VkLhwzf2wVX3fUPUVET",
+            query: queryValue
+          };
+          console.log("Sending Zoom agent request:", payload);
+          result = await sendJsonRequest(ApiEndpoint.ZoomAgent, payload);
           break;
         }
         default: {
