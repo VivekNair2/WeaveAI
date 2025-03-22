@@ -529,11 +529,14 @@ const handlePlayClick = async () => {
         // Extract query from Text-Input-Tool
         const queryValue = textInputNode.data.inputs.find(input => input.name === 'Text')?.value || '';
         
+        // Extract model from Text-Agent LLM dropdown
+        const modelInput = textAgentNode.data.inputs.find(input => input.name === 'LLM');
+        
         // Extract instructions from Text-Agent if available
         const instructionsInput = textAgentNode.data.inputs.find(input => input.name === 'Instructions');
         
         const payload = {
-          model: "google_search",
+          model: modelInput?.value || "gemini", // Use model from LLM dropdown instead of hardcoding
           query: queryValue,
           instructions: instructionsInput?.value || ""
         };

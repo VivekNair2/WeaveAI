@@ -76,6 +76,7 @@ def zoom_agent(request: ZoomRequest):
 @app.post("/voice_agent")
 def voice_agent():
     os.system(f'lk dispatch create --new-room --agent-name outbound-caller --metadata +917769915068')
+    return {"response": "Voice agent has been dispatched."}
 
 @app.post("/workflow_agent")
 def workflow_agent(
