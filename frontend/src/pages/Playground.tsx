@@ -6,7 +6,7 @@ import { NodeData, EdgeData, DataType } from '../types/nodeTypes';
 import { BiMessageDetail } from 'react-icons/bi';
 import { BsMicFill, BsFileEarmarkText, BsFileEarmark } from 'react-icons/bs';
 import { MdEmail, MdTextFields, MdOutlineOutput } from 'react-icons/md';
-import { FiPaperclip } from 'react-icons/fi';
+import { FiPaperclip, FiSearch } from 'react-icons/fi';
 import { AiOutlineSound } from 'react-icons/ai';
 import { FaDatabase } from 'react-icons/fa';
 
@@ -104,6 +104,15 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
       { id: 'output-1', name: 'Content', type: 'string', fieldType: 'output', display: true }
     ],
     icon: FaDatabase
+  },
+  "Web-Search-Agent": {
+    inputs: [
+
+    ],
+    outputs: [
+      { id: 'output-1', name: 'Search Results', type: 'string', fieldType: 'output', display: false }
+    ],
+    icon: FiSearch
   }
 };
 
