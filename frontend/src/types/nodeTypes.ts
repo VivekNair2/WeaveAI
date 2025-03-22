@@ -3,13 +3,14 @@ export interface Position {
   y: number;
 }
 
-export type DataType = 'string' | 'number' | 'boolean' | 'file' | 'array' | 'object';
+export type DataType = 'string' | 'number' | 'boolean' | 'file' | 'array' | 'object' | 'none';
 
 export interface NodeField {
   id: string;
   name: string;
   type: DataType;
   fieldType: 'input' | 'output';
+  display: string;
   value?: any;
   options?: string[]; // For dropdown type
 }
