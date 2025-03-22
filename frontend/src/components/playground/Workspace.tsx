@@ -704,30 +704,97 @@ const Workspace: React.FC<WorkspaceProps> = ({
                         </label>
                         {/* Render an input field only for supported types */}
                         {input.type === 'string' && !input.options && (
-                          <input
-                            type="text"
-                            className="flex-grow p-1 text-sm border rounded w-full"
-                            placeholder="Enter value"
-                            value={input.value || ''}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              setNodes((prev) =>
-                                prev.map((n) =>
-                                  n.id === node.id
-                                    ? {
-                                        ...n,
-                                        data: {
-                                          ...n.data,
-                                          inputs: n.data.inputs.map((i) =>
-                                            i.id === input.id ? { ...i, value: e.target.value } : i
-                                          ),
-                                        },
-                                      }
-                                    : n
+                          <div className="flex w-full">
+                            <input
+                              type="text"
+                              className="flex-grow p-1 text-sm border rounded-l w-full"
+                              placeholder="Enter value"
+                              value={input.value || ''}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                setNodes((prev) =>
+                                  prev.map((n) =>
+                                    n.id === node.id
+                                      ? {
+                                          ...n,
+                                          data: {
+                                            ...n.data,
+                                            inputs: n.data.inputs.map((i) =>
+                                              i.id === input.id ? { ...i, value: e.target.value } : i
+                                            ),
+                                          },
+                                        }
+                                      : n
+                                  )
                                 )
-                              )
-                            }
-                          />
+                              }
+                            />
+                            <button
+                              className="bg-indigo-100 hover:bg-indigo-200 text-indigo-600 p-1 border border-l-0 rounded-r flex items-center justify-center"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                
+                                // Check browser support for SpeechRecognition
+                                const SpeechRecognition = (window as any).SpeechRecognition || 
+                                                         (window as any).webkitSpeechRecognition;
+                                
+                                if (!SpeechRecognition) {
+                                  alert("Speech recognition is not supported in your browser");
+                                  return;
+                                }
+                                
+                                const recognition = new SpeechRecognition();
+                                recognition.lang = 'en-US';
+                                recognition.interimResults = false;
+                                
+                                // Show feedback that recording has started
+                                const button = e.currentTarget;
+                                button.classList.add('bg-red-100', 'text-red-600');
+                                button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v.756a49.106 49.106 0 0 1 9.152 1 .75.75 0 0 1-.152 1.485h-1.918l2.474 10.124a.75.75 0 0 1-.375.84A6.723 6.723 0 0 1 18.5 18.75H5.5a6.723 6.723 0 0 1-3.431-.761.75.75 0 0 1-.375-.84L4.168 7.025H2.25a.75.75 0 0 1-.152-1.485 49.105 49.105 0 0 1 9.152-1V3a.75.75 0 0 1 .75-.75Zm4.878 13.997a.75.75 0 0 0 .132-1.5 24.585 24.585 0 0 0-4.257-.4h-1.505a24.592 24.592 0 0 0-4.257.4.75.75 0 0 0 .132 1.5c.49-.086 1.011-.142 1.542-.166h6.67c.532.024 1.052.08 1.542.166Z" clip-rule="evenodd" /></svg>';
+                                
+                                recognition.onresult = (event: any) => {
+                                  const transcript = event.results[0][0].transcript;
+                                  
+                                  // Update the input value with the transcript
+                                  setNodes((prev) =>
+                                    prev.map((n) =>
+                                      n.id === node.id
+                                        ? {
+                                            ...n,
+                                            data: {
+                                              ...n.data,
+                                              inputs: n.data.inputs.map((i) =>
+                                                i.id === input.id ? { ...i, value: transcript } : i
+                                              ),
+                                            },
+                                          }
+                                        : n
+                                    )
+                                  );
+                                };
+                                
+                                recognition.onend = () => {
+                                  // Reset button appearance when recording ends
+                                  button.classList.remove('bg-red-100', 'text-red-600');
+                                  button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" /><path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" /></svg>';
+                                };
+                                
+                                recognition.onerror = (event: any) => {
+                                  console.error('Speech recognition error', event.error);
+                                  button.classList.remove('bg-red-100', 'text-red-600');
+                                  button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" /><path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" /></svg>';
+                                };
+                                
+                                recognition.start();
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                <path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" />
+                                <path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" />
+                              </svg>
+                            </button>
+                          </div>
                         )}
                         {input.type === 'file' && (
                           <label className="flex items-center gap-2 cursor-pointer">
