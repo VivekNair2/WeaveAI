@@ -3,17 +3,17 @@ import { motion } from 'framer-motion';
 export function UseCases() {
   const cases = [
     {
-      image: "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=800",
+      image: "https://assertiveindustries.com/wp-content/uploads/2021/07/Oracle-E-Business-Background.jpg",
       title: "Enterprise Solutions",
       description: "Automate complex business processes and decision-making workflows."
     },
     {
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800",
+      image: "https://woxsen.edu.in/blog/wp-content/uploads/2021/02/financial-services.jpg",
       title: "Financial Services",
       description: "Streamline document processing and regulatory compliance checks."
     },
     {
-      image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800",
+      image: "https://www.astronhealthcare.com/blog/wp-content/uploads/2021/04/H14-P-De-Raeve-3003-atl-image-3-696x392-1.jpg",
       title: "Healthcare",
       description: "Enhance patient care with automated data analysis and reporting."
     }
