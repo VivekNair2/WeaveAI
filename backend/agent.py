@@ -12,6 +12,8 @@ from agno.models.google import Gemini
 from agno.vectordb.lancedb import LanceDb, SearchType
 from agno.knowledge.pdf import PDFKnowledgeBase, PDFReader
 from agno.embedder.google import GeminiEmbedder
+from typing import Optional
+from fastapi import UploadFile
 
 load_dotenv()
 
@@ -22,18 +24,17 @@ gemini_model=Gemini(id="gemini-1.5-flash")
 groq_model=Groq(id="llama-3.3-70b-versatile")
 
 class TextAgent:
-    def __init__(self, model,instructions, tools):
+    def __init__(self, model,instructions):
         if "gemini" in model.lower():
             self.model=gemini_model
         elif "groq" in model.lower():
             self.model=groq_model
        
         self.instructions=instructions
-        self.tools=tools
+       
         self.agent=Agent(
         model=self.model,
         description=self.instructions,
-        tools=self.tools,
         markdown=True
         )
     def run_agent(self,query):
@@ -41,22 +42,22 @@ class TextAgent:
         return response.content
     
 class CSVAgent:
-    def __init__ (self,model,file_path):
+    def __init__ (self,model,file:UploadFile):
         if "gemini" in model.lower():
             self.model=gemini_model
         elif "groq" in model.lower():
             self.model=groq_model
-        if not os.path.exists(file_path):
-            raise ValueError(f"CSV file not found: {file_path}")
-        self.csv=file_path
-        csv_name = os.path.basename(file_path)
+       
+        csv_content = file.file.read().decode("utf-8")
+        file_name=file.filename
+        
         self.agent = Agent(
         model=self.model,
-        tools=[CsvTools(csvs=[self.csv])],
+        tools=[CsvTools(csvs=[csv_content])],
         markdown=True,
         show_tool_calls=True,
         instructions=[
-            f"The CSV file name is {csv_name}",
+            f"the name of the csv is {file_name}",
             "First check the columns in the file",
             "Then run the query to answer the question",
             "Always wrap column names with double quotes if they contain spaces or special characters",
@@ -94,7 +95,7 @@ class ZoomAgent:
         response: RunResponse = self.agent.run(query, stream=False)
         return response.content
 
-class NewsAgent:
+class WebAgent:
     def __init__(self, model):
         if "gemini" in model.lower():
             self.model = gemini_model
@@ -104,11 +105,11 @@ class NewsAgent:
         self.agent = Agent(
             model=self.model,
             tools=[GoogleSearchTools()],
-            description="You are a news agent that helps users find the latest news.",
+            description="You are a web search agent that can search the web and give answers to the user",
             instructions=[
-                "Given a topic by the user, respond with 4 latest news items about that topic.",
-                "Search for 10 news items and select the top 4 unique items.",
-                "Search in English and in French."
+                "Given a topic by the user, respond with 4 latest search items about that topic.",
+                "Search for 10  items and select the top 4 unique items.",
+                "Search in English and Hindi"
             ],
             show_tool_calls=True,
             debug_mode=True,
@@ -145,23 +146,26 @@ class EmailAgent:
         return response.content
 
 class RAGAgent:
-    def __init__(self, model, pdf_path):
+    def __init__(self, model: str, file: UploadFile):
+        # Select model
         if "gemini" in model.lower():
             self.model = gemini_model
         elif "groq" in model.lower():
             self.model = groq_model
 
-        from agno.vectordb.lancedb import LanceDb, SearchType
-        from agno.knowledge.pdf import PDFKnowledgeBase, PDFReader
-        from agno.embedder.google import GeminiEmbedder
+        # Read file content
+        pdf_content = file.file.read()
         
+        # Save PDF content as a temporary file
+        pdf_path = f"tmp/{file.filename}"
+        with open(pdf_path, "wb") as f:
+            f.write(pdf_content)
+
+        # Set up embeddings and knowledge base
         embeddings = GeminiEmbedder()
-        
         self.agent = Agent(
             model=self.model,
-            instructions="""You are a passionate and knowledgeable AI assistant who can answer questions about various topics. 
-            Your responses should be informative and well-researched. Please provide detailed explanations for your answers. 
-            If you don't have enough information to answer the question, please say so and ask for more details.""",
+            instructions="You are a RAG-based AI agent that will be given the resume of the user through knowledge, and you have to answer the questions.",
             knowledge=PDFKnowledgeBase(
                 path=pdf_path,
                 vector_db=LanceDb(
@@ -176,9 +180,12 @@ class RAGAgent:
             markdown=True,
             add_references=True,
         )
-        
+
         if self.agent.knowledge is not None:
             self.agent.knowledge.load()
+
+    def process(self, query: str):
+        return {"response": self.agent.run_agent(query)}
     
     def run_agent(self, query):
         response: RunResponse = self.agent.run(query, stream=False)
@@ -221,5 +228,5 @@ class RAGAgent:
 # print(email_agent.run_agent("Send an email about the upcoming team meeting"))
 
 # RAG Agent example
-rag_agent = RAGAgent(model="gemini", pdf_path="D2KProblemStatements.pdf")
-print(rag_agent.run_agent("What are the problem statement?"))
+# rag_agent = EmailAgent(model="gemini")
+# print(rag_agent.run_agent("find me latest news from mumbai"))

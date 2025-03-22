@@ -13,3 +13,12 @@ sqlalchemy
 psycopg2
 pgvector
 chromadb
+googlesearch-python
+pycountry
+livekit
+livekit-agents==0.12.7
+livekit-api==0.8.1
+livekit-plugins-deepgram==0.6.16
+livekit-plugins-openai==0.10.14
+livekit-plugins-silero==0.7.4
+livekit-protocol==0.8.0
