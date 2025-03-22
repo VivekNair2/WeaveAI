@@ -11,6 +11,8 @@ import { AiOutlineSound } from 'react-icons/ai';
 import { FaDatabase } from 'react-icons/fa';
 // Add this import at the top
 import { useNavigate, useLocation } from 'react-router-dom';
+// Add this import at the top
+import { workflowPatterns } from '../utils/workflowPatterns';
 
 // Define Template interface
 interface Template {
@@ -33,9 +35,9 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
     inputs: [
       { id: 'input-1', name: 'Tools', type: 'tool', fieldType: 'none' },
       { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
-      { id: 'input-2', name: 'Query', type: 'none', fieldType: 'input' },
-      { id: 'input-3', name: 'LLM', type: 'string', fieldType: 'input', options: ['Groq', 'Gemini'] },
-      { id: 'input-4', name: 'API Key', type: 'string', fieldType: 'input' }
+      { id: 'input-3', name: 'Query', type: 'none', fieldType: 'input' },
+      { id: 'input-4', name: 'LLM', type: 'string', fieldType: 'input', options: ['Groq', 'Gemini'] },
+      { id: 'input-5', name: 'API Key', type: 'string', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'Output', type: 'string', fieldType: 'output' },
@@ -60,11 +62,13 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
   "CSV-Agent": {
     inputs: [
       { id: 'input-1', name: 'File', type: 'none', fieldType: 'input' },
-      { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' }
+      { id: 'input-2', name: 'Instructions', type: 'string', fieldType: 'input' },
+      { id: 'input-3', name: 'Query', type: 'string', fieldType: 'input' }
     ],
     outputs: [
       { id: 'output-1', name: 'Personal Description', type: 'string', fieldType: 'output' },
       { id: 'output-2', name: 'Receiver Emails', type: 'string', fieldType: 'output' },
+      { id: 'output-3', name: 'Output', type: 'string', fieldType: 'output' },
     ],
     icon: BsFileEarmarkText
   },
@@ -122,7 +126,7 @@ export const nodeTemplates: Record<string, { inputs: any[], outputs: any[], icon
 
     ],
     outputs: [
-      { id: 'output-1', name: 'Search Results', type: 'string', fieldType: 'output', display: false }
+      { id: 'output-1', name: 'Tool', type: 'string', fieldType: 'output', display: false }
     ],
     icon: FiSearch
   },
@@ -140,6 +144,9 @@ const Playground = () => {
   const [edges, setEdges] = useState<EdgeData[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isTemplateSaveModalOpen, setIsTemplateSaveModalOpen] = useState(false);
+  // Add these states for execution status
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionResult, setExecutionResult] = useState<{ success: boolean; message: string } | null>(null);
   const navigate = useNavigate();
 
   // Load templates from localStorage on component mount
@@ -278,6 +285,174 @@ const Playground = () => {
     }
   }, [edges, nodes]);
 
+// Generic workflow pattern checker
+const checkWorkflowPattern = (nodes: NodeData[], edges: EdgeData[], patternId: string): boolean => {
+  const pattern = workflowPatterns.find(p => p.id === patternId);
+  if (!pattern) return false;
+
+  // 1. Check if all required node types are present
+  const nodeTypeMap: Record<string, NodeData[]> = {};
+  nodes.forEach(node => {
+    if (!nodeTypeMap[node.type]) {
+      nodeTypeMap[node.type] = [];
+    }
+    nodeTypeMap[node.type].push(node);
+  });
+  
+  for (const type of pattern.requiredNodeTypes) {
+    if (!nodeTypeMap[type] || nodeTypeMap[type].length === 0) {
+      return false; // Missing a required node type
+    }
+  }
+  
+  // 2. Check if connections match the expected pattern
+  // Build a map to easily check connections
+  const connections: Record<string, string[]> = {};
+  
+  edges.forEach(edge => {
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    const targetNode = nodes.find(n => n.id === edge.target);
+    
+    if (!sourceNode || !targetNode) return;
+    
+    const connection = `${sourceNode.type}→${targetNode.type}`;
+    if (!connections[connection]) {
+      connections[connection] = [];
+    }
+    
+    // Add information about which ports are connected
+    const sourceOutput = sourceNode.data.outputs.find(o => o.id === edge.sourceHandle);
+    const targetInput = targetNode.data.inputs.find(i => i.id === edge.targetHandle);
+    
+    if (sourceOutput && targetInput) {
+      connections[connection].push(`${sourceOutput.name}→${targetInput.name}`);
+    }
+  });
+  
+  // Check if all pattern connections exist
+  for (const { nodeConnection, portConnection } of pattern.connections) {
+    // Check if this connection type exists
+    if (!connections[nodeConnection]) {
+      return false;
+    }
+    
+    // Check if a connection between the right ports exists
+    // Since port names might vary, we use a more flexible check
+    const matchFound = connections[nodeConnection].some(conn => {
+      const [sourcePort, targetPort] = conn.split('→');
+      const [expectedSourcePort, expectedTargetPort] = portConnection.split('→');
+      
+      // Check if port names contain the expected values (case insensitive)
+      return (
+        sourcePort.toLowerCase().includes(expectedSourcePort.toLowerCase()) &&
+        targetPort.toLowerCase().includes(expectedTargetPort.toLowerCase())
+      );
+    });
+    
+    if (!matchFound) {
+      return false;
+    }
+  }
+  
+  // All checks passed, this matches the pattern
+  return true;
+};
+
+// Detect which pattern the workflow matches
+const detectWorkflowPattern = (nodes: NodeData[], edges: EdgeData[]): {patternId: string, endpoint: string} | null => {
+  for (const pattern of workflowPatterns) {
+    if (checkWorkflowPattern(nodes, edges, pattern.id)) {
+      return {
+        patternId: pattern.id,
+        endpoint: pattern.endpoint
+      };
+    }
+  }
+  return null;
+};
+
+// Updated handlePlayClick function
+const handlePlayClick = async () => {
+  if (nodes.length === 0) {
+    alert("Nothing to execute. Please add some nodes to your flow.");
+    return;
+  }
+
+  setIsExecuting(true);
+  setExecutionResult(null);
+  
+  try {
+    // Prepare payload with nodes and their connections
+    const payload = {
+      nodes: nodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        data: {
+          label: node.data.label,
+          inputs: node.data.inputs.map(input => ({
+            id: input.id,
+            name: input.name,
+            type: input.type,
+            fieldType: input.fieldType,
+            value: input.value || null
+          })),
+          outputs: node.data.outputs.map(output => ({
+            id: output.id,
+            name: output.name,
+            type: output.type,
+            fieldType: output.fieldType
+          }))
+        }
+      })),
+      edges: edges
+    };
+    
+    // Detect workflow pattern
+    const detectedPattern = detectWorkflowPattern(nodes, edges);
+    
+    let response;
+    if (detectedPattern) {
+      console.log(`${detectedPattern.patternId} pattern detected - calling ${detectedPattern.endpoint}`);
+      response = await fetch(detectedPattern.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      console.log("Standard flow execution - calling default endpoint");
+      response = await fetch('/api/execute-flow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('Execution result:', result);
+    
+    setExecutionResult({
+      success: true,
+      message: result.message || "Flow executed successfully!"
+    });
+  } catch (error) {
+    console.error('Error executing flow:', error);
+    setExecutionResult({
+      success: false,
+      message: `Error: ${error instanceof Error ? error.message : "Unknown error occurred"}`
+    });
+  } finally {
+    setIsExecuting(false);
+  }
+};
+
   // Add a new function to navigate to Templates page
   const handleViewTemplates = () => {
     navigate('/marketplace');
@@ -295,6 +470,9 @@ const Playground = () => {
         onNodeDrop={handleNodeDrop}
         onSaveTemplate={() => setIsTemplateSaveModalOpen(true)}
         onViewTemplates={handleViewTemplates} // Add this prop
+        onPlayClick={handlePlayClick} // Add this prop
+        isExecuting={isExecuting} // Add this prop
+        executionResult={executionResult} // Add this prop
       />
 
       {/* Template Save Modal */}

@@ -1,0 +1,502 @@
+[
+  {
+    "id": "template-1742627358726",
+    "name": "Marketing Cold Caller",
+    "nodes": [
+      {
+        "id": "node-1742622989804",
+        "type": "CSV-Agent",
+        "position": { "x": 78.80929946899414, "y": 544.28602206707 },
+        "data": {
+          "label": "CSV-Agent",
+          "inputs": [
+            {
+              "id": "input-1-1742622989804",
+              "name": "File",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-2-1742622989804",
+              "name": "Instructions",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742622989804",
+              "name": "Personal Description",
+              "type": "string",
+              "fieldType": "output"
+            },
+            {
+              "id": "output-2-1742622989804",
+              "name": "Receiver Emails",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742622994671",
+        "type": "File-Input-Tool",
+        "position": { "x": 58.80939865112305, "y": 136.6667287349701 },
+        "data": {
+          "label": "File-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-1742622994671",
+              "name": "File",
+              "type": "file",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742622994671",
+              "name": "File",
+              "type": "file",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742627214535",
+        "type": "Voice-Agent",
+        "position": { "x": 488.33330154418945, "y": 391.6665954589844 },
+        "data": {
+          "label": "Voice-Agent",
+          "inputs": [
+            {
+              "id": "input-1-1742627214535",
+              "name": "Tools",
+              "type": "tool",
+              "fieldType": "none"
+            },
+            {
+              "id": "input-2-1742627214535",
+              "name": "STT",
+              "type": "string",
+              "fieldType": "input",
+              "options": ["OpenAI", "Google", "Azure", "Assembly AI"]
+            },
+            {
+              "id": "input-3-1742627214535",
+              "name": "TTS",
+              "type": "string",
+              "fieldType": "input",
+              "options": ["OpenAI", "ElevenLabs", "Deepgram", "Google"]
+            },
+            {
+              "id": "input-4-1742627214535",
+              "name": "Language",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-5-1742627214535",
+              "name": "Instructions",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-6-1742627214535",
+              "name": "To Phone Number",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742627214535",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742627220632",
+        "type": "WhatsApp-Tool",
+        "position": { "x": 480.0003682374954, "y": 138.3326015472412 },
+        "data": {
+          "label": "WhatsApp-Tool",
+          "inputs": [],
+          "outputs": [
+            {
+              "id": "output-1-1742627220632",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output",
+              "display": false
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742627321993",
+        "type": "End",
+        "position": { "x": 890, "y": 546.6669921875 },
+        "data": {
+          "label": "End",
+          "inputs": [
+            {
+              "id": "input-1-1742627321993",
+              "name": "End",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-1742621809241",
+        "source": "node-1742621807234",
+        "sourceHandle": "output-1-1742621807234",
+        "target": "node-1742621781999",
+        "targetHandle": "input-1-1742621781999"
+      },
+      {
+        "id": "edge-1742622148420",
+        "source": "node-1742621781999",
+        "sourceHandle": "output-1-1742621781999",
+        "target": "node-1742621907795",
+        "targetHandle": "input-1-1742621907795"
+      },
+      {
+        "id": "edge-1742622184839",
+        "source": "node-1742621907795",
+        "sourceHandle": "output-1-1742621907795",
+        "target": "node-1742622179281",
+        "targetHandle": "input-4-1742622179281"
+      },
+      {
+        "id": "edge-1742622372564",
+        "source": "node-1742621901931",
+        "sourceHandle": "output-1-1742621901931",
+        "target": "node-1742622352670",
+        "targetHandle": "input-2-1742622352670"
+      },
+      {
+        "id": "edge-1742623005692",
+        "source": "node-1742622994671",
+        "sourceHandle": "output-1-1742622994671",
+        "target": "node-1742622989804",
+        "targetHandle": "input-1-1742622989804"
+      },
+      {
+        "id": "edge-1742623070737",
+        "source": "node-1742622989804",
+        "sourceHandle": "output-2-1742622989804",
+        "target": "node-1742623066561",
+        "targetHandle": "input-4-1742623066561"
+      },
+      {
+        "id": "edge-1742627226668",
+        "source": "node-1742627220632",
+        "sourceHandle": "output-1-1742627220632",
+        "target": "node-1742627214535",
+        "targetHandle": "input-1-1742627214535"
+      },
+      {
+        "id": "edge-1742627287704",
+        "source": "node-1742622989804",
+        "sourceHandle": "output-1-1742622989804",
+        "target": "node-1742627214535",
+        "targetHandle": "input-5-1742627214535"
+      },
+      {
+        "id": "edge-1742627328574",
+        "source": "node-1742627214535",
+        "sourceHandle": "output-1-1742627214535",
+        "target": "node-1742627321993",
+        "targetHandle": "input-1-1742627321993"
+      }
+    ],
+    "createdAt": "2025-03-22T07:09:18.726Z"
+  },
+  {
+    "id": "template-1742623222495",
+    "name": "Email Marketing Workflow",
+    "nodes": [
+      {
+        "id": "node-1742622989804",
+        "type": "CSV-Agent",
+        "position": { "x": 367.14300537109375, "y": 74.28569984436035 },
+        "data": {
+          "label": "CSV-Agent",
+          "inputs": [
+            {
+              "id": "input-1-1742622989804",
+              "name": "File",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-2-1742622989804",
+              "name": "Instructions",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742622989804",
+              "name": "Personal Description",
+              "type": "string",
+              "fieldType": "output"
+            },
+            {
+              "id": "output-2-1742622989804",
+              "name": "Receiver Emails",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742622994671",
+        "type": "File-Input-Tool",
+        "position": { "x": -12.857601165771484, "y": 70.00003027915955 },
+        "data": {
+          "label": "File-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-1742622994671",
+              "name": "File",
+              "type": "file",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742622994671",
+              "name": "File",
+              "type": "file",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742623066561",
+        "type": "Email-Tool",
+        "position": { "x": 770, "y": 74.28570985794067 },
+        "data": {
+          "label": "Email-Tool",
+          "inputs": [
+            {
+              "id": "input-1-1742623066561",
+              "name": "Sender Mail",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-2-1742623066561",
+              "name": "Passkey",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-3-1742623066561",
+              "name": "Sender's Name",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-4-1742623066561",
+              "name": "Receiver Emails",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-5-1742623066562",
+              "name": "Email Description",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742623066562",
+              "name": "Status",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742623076590",
+        "type": "Text-Agent",
+        "position": { "x": 365.7139892578125, "y": 448.5710144042969 },
+        "data": {
+          "label": "Text-Agent",
+          "inputs": [
+            {
+              "id": "input-1-1742623076590",
+              "name": "Tools",
+              "type": "tool",
+              "fieldType": "none"
+            },
+            {
+              "id": "input-2-1742623076590",
+              "name": "Instructions",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-2-1742623076590",
+              "name": "Query",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-3-1742623076590",
+              "name": "LLM",
+              "type": "string",
+              "fieldType": "input",
+              "options": ["Groq", "Gemini"]
+            },
+            {
+              "id": "input-4-1742623076590",
+              "name": "API Key",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742623076590",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742623084647",
+        "type": "Text-Input-Tool",
+        "position": { "x": -15.714134216308594, "y": 440.000159740448 },
+        "data": {
+          "label": "Text-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-1742623084647",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-1742623084647",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-1742623171311",
+        "type": "End",
+        "position": { "x": 771.4290161132812, "y": 591.4289855957031 },
+        "data": {
+          "label": "End",
+          "inputs": [
+            {
+              "id": "input-1-1742623171311",
+              "name": "End",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-1742621809241",
+        "source": "node-1742621807234",
+        "sourceHandle": "output-1-1742621807234",
+        "target": "node-1742621781999",
+        "targetHandle": "input-1-1742621781999"
+      },
+      {
+        "id": "edge-1742622148420",
+        "source": "node-1742621781999",
+        "sourceHandle": "output-1-1742621781999",
+        "target": "node-1742621907795",
+        "targetHandle": "input-1-1742621907795"
+      },
+      {
+        "id": "edge-1742622184839",
+        "source": "node-1742621907795",
+        "sourceHandle": "output-1-1742621907795",
+        "target": "node-1742622179281",
+        "targetHandle": "input-4-1742622179281"
+      },
+      {
+        "id": "edge-1742622372564",
+        "source": "node-1742621901931",
+        "sourceHandle": "output-1-1742621901931",
+        "target": "node-1742622352670",
+        "targetHandle": "input-2-1742622352670"
+      },
+      {
+        "id": "edge-1742623005692",
+        "source": "node-1742622994671",
+        "sourceHandle": "output-1-1742622994671",
+        "target": "node-1742622989804",
+        "targetHandle": "input-1-1742622989804"
+      },
+      {
+        "id": "edge-1742623070737",
+        "source": "node-1742622989804",
+        "sourceHandle": "output-2-1742622989804",
+        "target": "node-1742623066561",
+        "targetHandle": "input-4-1742623066561"
+      },
+      {
+        "id": "edge-1742623124404",
+        "source": "node-1742623084647",
+        "sourceHandle": "output-1-1742623084647",
+        "target": "node-1742623076590",
+        "targetHandle": "input-2-1742623076590"
+      },
+      {
+        "id": "edge-1742623128066",
+        "source": "node-1742622989804",
+        "sourceHandle": "output-1-1742622989804",
+        "target": "node-1742623076590",
+        "targetHandle": "input-1-1742623076590"
+      },
+      {
+        "id": "edge-1742623131530",
+        "source": "node-1742623076590",
+        "sourceHandle": "output-1-1742623076590",
+        "target": "node-1742623066561",
+        "targetHandle": "input-5-1742623066562"
+      },
+      {
+        "id": "edge-1742623185595",
+        "source": "node-1742623066561",
+        "sourceHandle": "output-1-1742623066562",
+        "target": "node-1742623171311",
+        "targetHandle": "input-1-1742623171311"
+      }
+    ],
+    "createdAt": "2025-03-22T06:00:22.495Z"
+  }
+]
