@@ -153,13 +153,13 @@ class RAGAgent:
         elif "groq" in model.lower():
             self.model = groq_model
 
-        # Read file content
-        pdf_content = file.file.read()
-        
-        # Save PDF content as a temporary file
+        # Create temporary directory if it doesn't exist
+        os.makedirs("tmp", exist_ok=True)
+
+        # Save the uploaded file
         pdf_path = f"tmp/{file.filename}"
         with open(pdf_path, "wb") as f:
-            f.write(pdf_content)
+            f.write(file.file.read())
 
         # Set up embeddings and knowledge base
         embeddings = GeminiEmbedder()
@@ -184,13 +184,9 @@ class RAGAgent:
         if self.agent.knowledge is not None:
             self.agent.knowledge.load()
 
-    def process(self, query: str):
-        return {"response": self.agent.run_agent(query)}
-    
-    def run_agent(self, query):
-        response: RunResponse = self.agent.run(query, stream=False)
+    def run_agent(self, query: str):
+        response:RunResponse=self.agent.run(query)
         return response.content
-
 # # Example usage:
 # # Text Agent example
 # text_agent = TextAgent(

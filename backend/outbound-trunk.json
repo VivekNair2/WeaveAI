@@ -1,0 +1,9 @@
+{
+  "trunk": {
+    "name": "EY",
+    "address": "tkd0324a8b20ddcbe3ef85960db8ad9537.pstn.twilio.com",
+    "numbers": ["+19034963918"],
+    "auth_username": "EY",
+    "auth_password": "AdminVivek@123"
+  }
+}
