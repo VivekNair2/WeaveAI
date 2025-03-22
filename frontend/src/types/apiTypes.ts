@@ -51,6 +51,43 @@ export enum ApiEndpoint {
   WebAgent = 'http://localhost:8000/web_agent',
   ZoomAgent = 'http://localhost:8000/zoom_agent',
   VoiceAgent = 'http://localhost:8000/voice_agent',
+  WorkflowAgent = 'http://localhost:8000/workflow_agent'
+}
+
+export interface WorkflowAgentParams {
+  session_id: string;
+  sender_email: string;
+  sender_name: string;
+  sender_passkey: string;
+  company_name: string;
+  product_description: string;
+  csv_file: string;
+  model: string;
+}
+
+export async function sendWorkflowAgentRequest<R = ApiResponse>(
+  params: WorkflowAgentParams
+): Promise<R> {
+  const formData = new FormData();
+  formData.append("session_id", params.session_id);
+  formData.append("sender_email", params.sender_email);
+  formData.append("sender_name", params.sender_name);
+  formData.append("sender_passkey", params.sender_passkey);
+  formData.append("company_name", params.company_name);
+  formData.append("product_description", params.product_description);
+  formData.append("csv_file", params.csv_file);
+  formData.append("model", params.model);
+
+  const response = await fetch(ApiEndpoint.WorkflowAgent, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 // Helper function for JSON payload APIs

@@ -105,12 +105,15 @@ class MarketingEmailWorkflow(Workflow):
             # Process each customer and send personalized email with delay between sends
             results = []
             for customer_data in self.parse_csv_response(csv_response):
+                logger.debug(f"Processing customer: {customer_data.email}")
+
                 # Create email content based on customer description
                 email_content = self.generate_email_content(
                     customer_data,
                     company_name,
                     product_description
                 )
+                logger.debug(f"Generated email content for {customer_data.email}: {email_content[:100]}...")
 
                 # Initialize EmailAgent for this customer
                 email_agent = EmailAgent(
@@ -124,8 +127,10 @@ class MarketingEmailWorkflow(Workflow):
                 retry_count = 0
                 while retry_count < max_retries:
                     try:
+                        logger.debug(f"Sending email to {customer_data.email}, attempt {retry_count+1}")
                         # Send personalized email with exponential backoff
                         email_response = email_agent.run_agent(email_content)
+                        logger.debug(f"Email sent to {customer_data.email} with response: {email_response}")
                         results.append({
                             "customer": customer_data.model_dump(),
                             "email_status": "success",
@@ -166,6 +171,7 @@ class MarketingEmailWorkflow(Workflow):
     def parse_csv_response(self, csv_response: str) -> Iterator[CustomerData]:
         """Parse the CSV agent response and yield CustomerData objects."""
         try:
+            logger.debug("Parsing CSV response: %s", csv_response)
             # Skip empty responses
             if not csv_response or not csv_response.strip():
                 logger.warning("Empty CSV response received")
@@ -173,6 +179,7 @@ class MarketingEmailWorkflow(Workflow):
 
             # Split the response into lines and clean up
             lines = [line.strip() for line in csv_response.strip().split('\n') if line.strip()]
+            logger.debug("CSV response split into %d lines", len(lines))
             if not lines:
                 logger.warning("No valid data found in CSV response")
                 return
@@ -182,37 +189,35 @@ class MarketingEmailWorkflow(Workflow):
             for line in lines:
                 # Skip markdown table formatting and empty lines
                 if line.startswith('|') and not line.replace('|', '').replace('-', '').strip() == '':
-                    # Clean up the markdown table formatting
                     cleaned_line = line.strip('|').strip()
                     if cleaned_line and not cleaned_line.startswith('-'):
                         data_rows.append(cleaned_line)
+            logger.debug("Extracted %d data rows", len(data_rows))
 
-            # Process each row (skip header)
+            # Process each data row (skipping header)
             for row_str in data_rows[1:]:
+                logger.debug("Processing row: %s", row_str)
                 try:
-                    # Split the row by | and clean up each cell
                     cells = [cell.strip() for cell in row_str.split('|')]
-                    
                     if len(cells) >= 3:
-                        name = cells[0].strip()
-                        email = cells[1].strip()
-                        description = cells[2].strip()
-                        
-                        if '@' in email:  # Basic email validation
+                        name = cells[0]
+                        email = cells[1]
+                        description = cells[2]
+                        if '@' in email:
                             yield CustomerData(
                                 name=name,
                                 email=email,
                                 description=description
                             )
                         else:
-                            logger.warning(f"Invalid email format in row: {row_str}")
+                            logger.warning("Invalid email format in row: %s", row_str)
                     else:
-                        logger.warning(f"Skipping invalid row: {row_str}")
+                        logger.warning("Skipping invalid row: %s", row_str)
                 except Exception as e:
-                    logger.error(f"Error processing row '{row_str}': {str(e)}")
+                    logger.error("Error processing row '%s': %s", row_str, str(e))
                     continue
         except Exception as e:
-            logger.error(f"Error parsing CSV response: {str(e)}")
+            logger.error("Error parsing CSV response: %s", str(e))
             raise
 
     def generate_email_content(self, customer: CustomerData, company_name: str, product_description: str) -> str:

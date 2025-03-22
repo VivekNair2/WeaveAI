@@ -1,7 +1,11 @@
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agent import TextAgent, RAGAgent, WebAgent, CSVAgent, ZoomAgent
+from agno.agent import RunResponse
 from workflow import MarketingEmailWorkflow
 import pandas as pd
 import io
@@ -87,13 +91,25 @@ def workflow_agent(
     sender_email: str = Form(...),
     sender_name: str = Form(...),
     sender_passkey: str = Form(...),
-    company_name: str = Form(...),
+    company_name: str = Form('Powerlook'),
     product_description: str = Form(...),
     use_cached_results: bool = Form(True),
     max_retries: int = Form(3),
     retry_delay: int = Form(5),
     csv_file: str = Form(...)
 ):
+    
+    print("session_id:", session_id)
+    print("sender_email:", sender_email)
+    print("sender_name:", sender_name)
+    print("sender_passkey:", sender_passkey)
+    print("company_name:", company_name)
+    print("product_description:", product_description)
+    print("use_cached_results:", use_cached_results)
+    print("max_retries:", max_retries)
+    print("retry_delay:", retry_delay)
+    print("csv_file:", csv_file)
+
     workflow = MarketingEmailWorkflow(
         session_id=session_id,
         csv_file=csv_file,
@@ -101,14 +117,18 @@ def workflow_agent(
         sender_name=sender_name,
         sender_passkey=sender_passkey
     )
-    responses = workflow.run(
+    responses: RunResponse = workflow.run(
         company_name=company_name,
         product_description=product_description,
         use_cached_results=use_cached_results,
         max_retries=max_retries,
         retry_delay=retry_delay
     )
-    return {"responses": [response.content for response in responses]}
+
+    for response in responses:
+        print(response)  # This triggers the generator and prints response details
+
+    return {"response": "Successfully sent emails."}
 
 if __name__ == "__main__":
     import uvicorn

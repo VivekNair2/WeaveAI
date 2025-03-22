@@ -1,1 +1,9 @@
 @import "tailwindcss";
+@theme {
+  --color-bistre: #251605;
+  --color-byzantium: #731963;
+  --color-aureolin: #F0E100;
+  --color-timberwolf: #CBD2D0;
+  --tw-container-center: true;
+  --tw-container-padding: 1rem;
+}
