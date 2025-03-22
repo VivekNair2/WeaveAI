@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiCalendar, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
-import { BiRupee } from 'react-icons/bi'; // Add this import for rupee icon
+import { BiRupee } from 'react-icons/bi';
+// Import premium templates
+import premiumTemplatesData from '../assets/premiumTemplates.json';
 
 interface MarketPlace {
   id: string;
@@ -13,6 +15,7 @@ interface MarketPlace {
 
 const MarketPlace = () => {
   const [templates, setTemplates] = useState<MarketPlace[]>([]);
+  const [premiumTemplates, setPremiumTemplates] = useState<MarketPlace[]>(premiumTemplatesData);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -42,7 +45,11 @@ const MarketPlace = () => {
     template.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Handle template deletion
+  const filteredPremiumTemplates = premiumTemplates.filter(template => 
+    template.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Handle template deletion (only for saved templates)
   const handleDeleteTemplate = (templateId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this template?')) {
@@ -56,8 +63,71 @@ const MarketPlace = () => {
   const handleLoadTemplate = (template: MarketPlace) => {
     // Store the selected template in sessionStorage for the Playground to access
     sessionStorage.setItem('template-to-load', JSON.stringify(template));
+    console.log("template to load", JSON.stringify(template));
     navigate('/playground');
   };
+  
+  // Template card component to avoid repetition
+  const TemplateCard = ({ template, isPremium = false }: { template: MarketPlace, isPremium?: boolean }) => (
+    <div
+      key={template.id}
+      onClick={() => handleLoadTemplate(template)}
+      className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer group"
+    >
+      {/* Template preview */}
+      <div className="h-40 bg-indigo-50 p-4 relative overflow-hidden">
+        {/* Premium indicator */}
+        {isPremium && (
+          <div className="absolute top-2 right-2 bg-amber-400 rounded-full p-1.5 shadow-md z-10 border border-amber-500">
+            <BiRupee className="text-white w-4 h-4" />
+          </div>
+        )}
+        
+        {template.nodes.map((node, index) => (
+          <div 
+            key={node.id}
+            className="absolute bg-white rounded-md shadow-sm border border-gray-200 w-20 h-12 flex items-center justify-center text-xs font-medium"
+            style={{
+              left: `${(node.position.x % 300) / 3}px`,
+              top: `${(node.position.y % 160) / 3}px`,
+              zIndex: index
+            }}
+          >
+            {node.data.label}
+          </div>
+        ))}
+      </div>
+      <div className="p-4">
+        <div className="flex justify-between items-start">
+          <h3 className="font-medium text-gray-800 truncate group-hover:text-indigo-600 transition-colors">
+            {template.name}
+          </h3>
+          {!isPremium && (
+            <button
+              onClick={(e) => handleDeleteTemplate(template.id, e)}
+              className="p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <FiTrash2 size={16} />
+            </button>
+          )}
+        </div>
+        <div className="mt-2 flex items-center text-sm text-gray-500">
+          <FiCalendar size={14} className="mr-1" />
+          <span>
+            {new Date(template.createdAt).toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })}
+          </span>
+        </div>
+        <div className="mt-2 text-xs text-gray-500">
+          {template.nodes.length} node{template.nodes.length !== 1 ? 's' : ''} • 
+          {template.edges.length} connection{template.edges.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -100,89 +170,75 @@ const MarketPlace = () => {
           </div>
         ) : (
           <>
-            {/* Template count */}
-            <div className="mb-6">
-              <h2 className="text-lg font-medium text-gray-700">
-                {filteredTemplates.length} {filteredTemplates.length === 1 ? 'Template' : 'Templates'} 
-                {searchQuery && ` matching "${searchQuery}"`}
-              </h2>
+            {/* Your Saved Templates Section */}
+            <div className="mb-12">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Saved Templates</h2>
+              
+              {/* Template count */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600">
+                  {filteredTemplates.length} {filteredTemplates.length === 1 ? 'Template' : 'Templates'} 
+                  {searchQuery && ` matching "${searchQuery}"`}
+                </p>
+              </div>
+
+              {/* Templates grid */}
+              {filteredTemplates.length === 0 ? (
+                <div className="bg-white shadow rounded-lg p-10 text-center">
+                  <p className="text-gray-500 text-lg">
+                    {searchQuery
+                      ? `No saved templates found matching "${searchQuery}"`
+                      : "No templates saved yet. Create your first template in the Playground!"}
+                  </p>
+                  <button
+                    onClick={() => navigate('/playground')}
+                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                  >
+                    Go to Playground
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredTemplates.map(template => (
+                    <TemplateCard key={template.id} template={template} />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Templates grid */}
-            {filteredTemplates.length === 0 ? (
-              <div className="bg-white shadow rounded-lg p-10 text-center">
-                <p className="text-gray-500 text-lg">
-                  {searchQuery
-                    ? `No templates found matching "${searchQuery}"`
-                    : "No templates saved yet. Create your first template in the Playground!"}
+            {/* Premium Templates Section */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <span>Premium Templates</span>
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                  <BiRupee className="mr-1" />
+                  Premium
+                </span>
+              </h2>
+              
+              {/* Template count */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600">
+                  {filteredPremiumTemplates.length} {filteredPremiumTemplates.length === 1 ? 'Template' : 'Templates'} 
+                  {searchQuery && ` matching "${searchQuery}"`}
                 </p>
-                <button
-                  onClick={() => navigate('/playground')}
-                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                >
-                  Go to Playground
-                </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTemplates.map(template => (
-                  <div
-                    key={template.id}
-                    onClick={() => handleLoadTemplate(template)}
-                    className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer group"
-                  >
-                    {/* Template preview (simplified visualization of nodes) */}
-                    <div className="h-40 bg-indigo-50 p-4 relative overflow-hidden">
-                      {/* Premium indicator */}
-                      <div className="absolute top-2 right-2 bg-amber-400 rounded-full p-1.5 shadow-md z-10 border border-amber-500">
-                        <BiRupee className="text-white w-4 h-4" />
-                      </div>
-                      
-                      {template.nodes.map((node, index) => (
-                        <div 
-                          key={node.id}
-                          className="absolute bg-white rounded-md shadow-sm border border-gray-200 w-20 h-12 flex items-center justify-center text-xs font-medium"
-                          style={{
-                            left: `${(node.position.x % 300) / 3}px`,
-                            top: `${(node.position.y % 160) / 3}px`,
-                            zIndex: index
-                          }}
-                        >
-                          {node.data.label}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-4">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-medium text-gray-800 truncate group-hover:text-indigo-600 transition-colors">
-                          {template.name}
-                        </h3>
-                        <button
-                          onClick={(e) => handleDeleteTemplate(template.id, e)}
-                          className="p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500">
-                        <FiCalendar size={14} className="mr-1" />
-                        <span>
-                          {new Date(template.createdAt).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {template.nodes.length} node{template.nodes.length !== 1 ? 's' : ''} • 
-                        {template.edges.length} connection{template.edges.length !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+
+              {/* Templates grid */}
+              {filteredPremiumTemplates.length === 0 ? (
+                <div className="bg-white shadow rounded-lg p-6 text-center">
+                  <p className="text-gray-500">
+                    No premium templates found matching "{searchQuery}"
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredPremiumTemplates.map(template => (
+                    <TemplateCard key={template.id} template={template} isPremium={true} />
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         )}
       </main>

@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { NodeData, EdgeData, NodeField, DataType } from '../../types/nodeTypes';
+import { FiPlay } from 'react-icons/fi'; // Import play icon
 
 interface WorkspaceProps {
   nodes: NodeData[];
@@ -10,6 +11,9 @@ interface WorkspaceProps {
   onNodeDrop?: (nodeType: string, position: { x: number, y: number }) => void;
   onSaveTemplate?: () => void;
   onViewTemplates?: () => void; // Add this new prop
+  onPlayClick?: () => void;
+  isExecuting?: boolean;
+  executionResult?: { success: boolean; message: string } | null;
 }
 
 const Workspace: React.FC<WorkspaceProps> = ({ 
@@ -20,7 +24,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
   onRemoveEdge,
   onNodeDrop,
   onSaveTemplate,
-  onViewTemplates
+  onViewTemplates,
+  onPlayClick,
+  isExecuting = false,
+  executionResult = null
 }) => {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const transformContainerRef = useRef<HTMLDivElement>(null);
@@ -415,8 +422,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
     return (
       <svg 
         className="absolute inset-0 pointer-events-none z-10" 
-        width="100%" 
-        height="100%"
+        width="1000px" 
+        height="1000px"
       >
         <path
           d={path}
@@ -433,9 +440,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
   const renderEdges = () => {
     return (
       <svg
-        className="absolute inset-0 z-10"
-        width="100%"
-        height="100%"
+        className="absolute z-10 left-0 top-0"
+        width="1000px"
+        height="1000px"
         style={{ pointerEvents: 'none' }}
       >
       <defs>
@@ -518,6 +525,40 @@ const Workspace: React.FC<WorkspaceProps> = ({
       onMouseLeave={handlePanEnd}
       style={{ touchAction: 'none' }} // Prevent browser gesture handling
     >
+      {/* Play button and execution status */}
+      <div className="absolute top-4 left-4 z-20 flex items-center space-x-3">
+        <button
+          onClick={onPlayClick}
+          disabled={isExecuting}
+          className={`flex items-center cursor-pointer justify-center p-2.5 rounded-full shadow-sm transition-colors ${
+            isExecuting 
+              ? 'bg-gray-300 cursor-not-allowed' 
+              : 'bg-green-500 hover:bg-green-600 text-white'
+          }`}
+          title="Execute flow"
+        >
+          {isExecuting ? (
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            <FiPlay className="h-5 w-5" />
+          )}
+        </button>
+        
+        {/* Show execution result message */}
+        {executionResult && (
+          <div className={`px-3 py-2 rounded-md text-sm font-medium shadow-sm ${
+            executionResult.success 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}>
+            {executionResult.message}
+          </div>
+        )}
+      </div>
+
       {/* Templates buttons - update to include Browse Templates */}
       <div className="absolute top-4 right-4 z-20 flex space-x-2">
         <button
