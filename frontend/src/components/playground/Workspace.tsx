@@ -738,26 +738,29 @@ const Workspace: React.FC<WorkspaceProps> = ({
                               type="file"
                               className="hidden"
                               onChange={(e) => {
-                                const fileName = e.target.files?.[0]?.name || 'No file selected';
-                                setNodes((prev) =>
-                                  prev.map((n) =>
-                                    n.id === node.id
-                                      ? {
-                                          ...n,
-                                          data: {
-                                            ...n.data,
-                                            inputs: n.data.inputs.map((i) =>
-                                              i.id === input.id ? { ...i, value: fileName } : i
-                                            ),
-                                          },
-                                        }
-                                      : n
-                                  )
-                                );
+                                if (e.target.files && e.target.files.length > 0) {
+                                  const file = e.target.files[0];
+                                  // Store the actual File object, not just the filename
+                                  setNodes((prev) =>
+                                    prev.map((n) =>
+                                      n.id === node.id
+                                        ? {
+                                            ...n,
+                                            data: {
+                                              ...n.data,
+                                              inputs: n.data.inputs.map((i) =>
+                                                i.id === input.id ? { ...i, value: file } : i
+                                              ),
+                                            },
+                                          }
+                                        : n
+                                    )
+                                  );
+                                }
                               }}
                             />
                             <span className="text-sm text-gray-500">
-                              {input.value || 'No file selected'}
+                              {input.value instanceof File ? input.value.name : (input.value || 'No file selected')}
                             </span>
                           </label>
                         )}

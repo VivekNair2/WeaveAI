@@ -13,6 +13,16 @@ import { FaDatabase } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 // Add this import at the top
 import { workflowPatterns } from '../utils/workflowPatterns';
+// Add imports at the top of your file
+import { 
+  ApiEndpoint, 
+  TextAgentRequest, 
+  WebAgentRequest,
+  sendJsonRequest,
+  sendFormDataRequest,
+  sendVoiceAgentRequest,
+  ApiResponse
+} from '../types/apiTypes';
 
 // Define Template interface
 interface Template {
@@ -382,60 +392,210 @@ const handlePlayClick = async () => {
   setExecutionResult(null);
   
   try {
-    // Prepare payload with nodes and their connections
-    const payload = {
-      nodes: nodes.map(node => ({
-        id: node.id,
-        type: node.type,
-        data: {
-          label: node.data.label,
-          inputs: node.data.inputs.map(input => ({
-            id: input.id,
-            name: input.name,
-            type: input.type,
-            fieldType: input.fieldType,
-            value: input.value || null
-          })),
-          outputs: node.data.outputs.map(output => ({
-            id: output.id,
-            name: output.name,
-            type: output.type,
-            fieldType: output.fieldType
-          }))
-        }
-      })),
-      edges: edges
-    };
-    
     // Detect workflow pattern
     const detectedPattern = detectWorkflowPattern(nodes, edges);
     
+    if (!detectedPattern) {
+      throw new Error("Unsupported workflow pattern. Please check your node connections.");
+    }
+    
+    console.log(`${detectedPattern.patternId} pattern detected - calling ${detectedPattern.endpoint}`);
+    
     let response;
-    if (detectedPattern) {
-      console.log(`${detectedPattern.patternId} pattern detected - calling ${detectedPattern.endpoint}`);
-      response = await fetch(detectedPattern.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-    } else {
-      console.log("Standard flow execution - calling default endpoint");
-      response = await fetch('/api/execute-flow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+    let result;
+    
+    // Format and send request based on the detected pattern
+    switch (detectedPattern.patternId) {
+      case 'text-agent': {
+        // Find required nodes
+        const textAgentNode = nodes.find(node => node.type === 'Text-Agent');
+        const textInputNode = nodes.find(node => node.type === 'Text-Input-Tool');
+        
+        if (!textAgentNode || !textInputNode) {
+          throw new Error("Missing required nodes for Text Agent workflow");
+        }
+        
+        // Extract values with proper typing
+        const modelInput = textAgentNode.data.inputs.find(input => input.name === 'LLM');
+        const instructionsInput = textAgentNode.data.inputs.find(input => input.name === 'Instructions');
+        const queryValue = textInputNode.data.inputs.find(input => input.name === 'Text')?.value || '';
+        
+        // Create properly typed request payload
+        const payload: TextAgentRequest = {
+          model: modelInput?.value || "gpt-4",
+          query: queryValue,
+          instructions: instructionsInput?.value || ""
+        };
+        
+        console.log("Sending text agent request:", payload);
+        
+        // Use the typed request function
+        result = await sendJsonRequest<TextAgentRequest>(
+          ApiEndpoint.TextAgent,
+          payload
+        );
+        
+        console.log('Execution result:', result);
+        break;
+      }
+      
+      case 'csv-agent': {
+        // Find CSV-Agent and File-Input-Tool nodes
+        const csvAgentNode = nodes.find(node => node.type === 'CSV-Agent');
+        const fileInputNode = nodes.find(node => node.type === 'File-Input-Tool');
+        const textInputNode = nodes.find(node => node.type === 'Text-Input-Tool');
+        
+        if (!csvAgentNode || !fileInputNode) {
+          throw new Error("Missing required nodes for CSV Agent workflow");
+        }
+        
+        // Extract query from Text-Input-Tool
+        const queryValue = textInputNode?.data.inputs.find(input => input.name === 'Text')?.value || '';
+        
+        // Extract file from File-Input-Tool with added debugging
+        const fileInput = fileInputNode.data.inputs.find(input => input.name === 'File');
+        const fileValue = fileInput?.value;
+        
+        console.log("File value:", fileValue);
+        console.log("File value type:", fileValue ? typeof fileValue : 'undefined');
+        console.log("Is File instance:", fileValue instanceof File);
+        
+        // Validate if we have an actual File object
+        if (!fileValue) {
+          throw new Error("No file selected for CSV Agent. Please upload a file.");
+        }
+        
+        if (!(fileValue instanceof File) || fileValue.size === 0) {
+          throw new Error("Please select a valid CSV file with content (not just a filename)");
+        }
+        
+        // Use the original file object directly
+        result = await sendFormDataRequest<ApiResponse>(
+          ApiEndpoint.CsvAgent,
+          {
+            model: "gemini",
+            query: queryValue,
+            file: fileValue
+          }
+        );
+        
+        console.log('Execution result:', result);
+        break;
+      }
+      
+      case 'rag': {
+        // Find Text-Agent, Knowledge-Base, and Text-Input-Tool nodes
+        const textAgentNode = nodes.find(node => node.type === 'Text-Agent');
+        const knowledgeBaseNode = nodes.find(node => node.type === 'Knowledge-Base');
+        const textInputNode = nodes.find(node => node.type === 'Text-Input-Tool');
+        
+        if (!textAgentNode || !knowledgeBaseNode || !textInputNode) {
+          throw new Error("Missing required nodes for RAG workflow");
+        }
+        
+        // Extract query from Text-Input-Tool
+        const queryValue = textInputNode.data.inputs.find(input => input.name === 'Text')?.value || '';
+        
+        // Extract file from Knowledge-Base
+        const fileInput = knowledgeBaseNode.data.inputs.find(input => input.name === 'File');
+        const fileValue = fileInput?.value;
+        
+        if (!fileValue) {
+          throw new Error("No file selected for Knowledge Base");
+        }
+        
+        const formData = new FormData();
+        formData.append("model", "gemini");
+        formData.append("query", queryValue);
+        formData.append("file", fileValue); // Assuming fileValue is a File object
+        
+        response = await fetch(detectedPattern.endpoint, {
+          method: 'POST',
+          body: formData
+        });
+        break;
+      }
+      
+      case 'web-search': {
+        // Find Text-Agent, Web-Search-Tool, and Text-Input-Tool nodes
+        const textAgentNode = nodes.find(node => node.type === 'Text-Agent');
+        const webSearchNode = nodes.find(node => node.type === 'Web-Search-Tool');
+        const textInputNode = nodes.find(node => node.type === 'Text-Input-Tool');
+        
+        if (!textAgentNode || !webSearchNode || !textInputNode) {
+          throw new Error("Missing required nodes for Web Search workflow");
+        }
+        
+        // Extract query from Text-Input-Tool
+        const queryValue = textInputNode.data.inputs.find(input => input.name === 'Text')?.value || '';
+        
+        // Extract instructions from Text-Agent if available
+        const instructionsInput = textAgentNode.data.inputs.find(input => input.name === 'Instructions');
+        
+        const payload = {
+          model: "google_search",
+          query: queryValue,
+          instructions: instructionsInput?.value || ""
+        };
+        
+        response = await fetch(detectedPattern.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        break;
+      }
+      
+      case 'marketing-cold-caller': {
+        // For voice-agent, the example shows no input required
+        response = await fetch(detectedPattern.endpoint, {
+          method: 'POST'
+        });
+        break;
+      }
+      
+      case 'email-marketing': {
+        // This would need to be implemented based on email workflow requirements
+        // As it's not in the provided examples, we'll use a generic approach
+        const payload = {
+          nodes: prepareNodeData(),
+          edges: edges
+        };
+        
+        response = await fetch(detectedPattern.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        break;
+      }
+      
+      default: {
+        // Generic fallback for unhandled patterns
+        const payload = {
+          nodes: prepareNodeData(),
+          edges: edges
+        };
+        
+        response = await fetch(detectedPattern.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
     }
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Handle the result based on how it was obtained
+    if (response) {
+      // For cases that used fetch and set the response variable
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      result = await response.json();
     }
     
-    const result = await response.json();
+    // At this point, result should be set regardless of which approach was used
     console.log('Execution result:', result);
     
     setExecutionResult({
@@ -451,6 +611,30 @@ const handlePlayClick = async () => {
   } finally {
     setIsExecuting(false);
   }
+};
+
+// Helper function to prepare node data
+const prepareNodeData = () => {
+  return nodes.map(node => ({
+    id: node.id,
+    type: node.type,
+    data: {
+      label: node.data.label,
+      inputs: node.data.inputs.map(input => ({
+        id: input.id,
+        name: input.name,
+        type: input.type,
+        fieldType: input.fieldType,
+        value: input.value || null
+      })),
+      outputs: node.data.outputs.map(output => ({
+        id: output.id,
+        name: output.name,
+        type: output.type,
+        fieldType: output.fieldType
+      }))
+    }
+  }));
 };
 
   // Add a new function to navigate to Templates page
