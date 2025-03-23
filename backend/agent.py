@@ -42,31 +42,37 @@ class TextAgent:
         return response.content
     
 class CSVAgent:
-    def __init__ (self,model,file:UploadFile):
+    def __init__ (self, model, file: UploadFile):
         if "gemini" in model.lower():
-            self.model=gemini_model
+            self.model = gemini_model
         elif "groq" in model.lower():
-            self.model=groq_model
-       
+            self.model = groq_model
+        
+        # Read the content immediately to avoid issues with file handle closing
         csv_content = file.file.read().decode("utf-8")
-        file_name=file.filename
+        file.file.seek(0)  # Reset file pointer
+        file_name = file.filename
+        
+        print(f"CSV content length: {len(csv_content)}")
+        print(f"CSV content preview: {csv_content[:100]}...")
         
         self.agent = Agent(
-        model=self.model,
-        tools=[CsvTools(csvs=[csv_content])],
-        markdown=True,
-        show_tool_calls=True,
-        instructions=[
-            f"the name of the csv is {file_name}",
-            "First check the columns in the file",
-            "Then run the query to answer the question",
-            "Always wrap column names with double quotes if they contain spaces or special characters",
-            "Remember to escape the quotes in the JSON string (use \")",
-            "Use single quotes for string values"
-        ],
+            model=self.model,
+            tools=[CsvTools(csvs=[csv_content])],  # Pass csv_content directly to CsvTools
+            markdown=True,
+            show_tool_calls=True,
+            instructions=[
+                f"the name of the csv is {file_name}, but I'm providing the content directly",
+                "First check the columns in the file",
+                "Then run the query to answer the question",
+                "The CSV content is already loaded, you don't need to look for a file",
+                "Always wrap column names with double quotes if they contain spaces or special characters",
+                "Remember to escape the quotes in the JSON string (use \")",
+                "Use single quotes for string values"
+            ],
         )
-    def run_agent(self,query):
-        response:RunResponse=self.agent.run(query,stream=False)
+    def run_agent(self, query):
+        response: RunResponse = self.agent.run(query, stream=False)
         return response.content
 
         
@@ -126,6 +132,8 @@ class EmailAgent:
             self.model = gemini_model
         elif "groq" in model.lower():
             self.model = groq_model
+        
+        self.receiver_email = receiver_email  # Store for reference
         
         self.email_tools = EmailTools(
             receiver_email=receiver_email,

@@ -189,7 +189,24 @@ const Playground = () => {
     if (templateToLoad) {
       try {
         const template = JSON.parse(templateToLoad);
-        setNodes(template.nodes);
+        
+        // Process template nodes to handle potential file inputs properly
+        const processedNodes = template.nodes.map((node: { data: { inputs: any[]; }; }) => {
+          // Process inputs to handle file values
+          if (node.data?.inputs) {
+            node.data.inputs = node.data.inputs.map(input => {
+              // If it's a file input with a stored filename object, ensure it's not rendered directly
+              if (input.type === 'file' && typeof input.value === 'object') {
+                // Store filename info but not as a direct value to prevent React rendering issues
+                return { ...input, value: null, fileInfo: input.value };
+              }
+              return input;
+            });
+          }
+          return node;
+        });
+        
+        setNodes(processedNodes);
         setEdges(template.edges);
         sessionStorage.removeItem('template-to-load');
       } catch (e) {
@@ -207,13 +224,42 @@ const Playground = () => {
 
   const handleSaveTemplate = (templateName: string) => {
     if (!templateName.trim()) return;
-    const newTemplate: Template = {
+
+    // Create a deep copy of nodes and clean file input values
+    const sanitizedNodes = nodes.map(node => {
+      // Create a deep copy of the node
+      const nodeCopy = { ...node, data: { ...node.data } };
+      
+      // If the node has inputs, sanitize file inputs
+      if (nodeCopy.data.inputs) {
+        nodeCopy.data.inputs = nodeCopy.data.inputs.map(input => {
+          // If it's a file input with a File object or non-serializable value
+          if (input.type === 'file' && input.value) {
+            // For file inputs, store only the filename instead of the File object
+            if (input.value instanceof File) {
+              return { 
+                ...input, 
+                value: { filename: input.value.name, size: input.value.size } 
+              };
+            }
+            // For other non-serializable objects
+            return { ...input, value: null };
+          }
+          return { ...input };
+        });
+      }
+      
+      return nodeCopy;
+    });
+
+    const newTemplate = {
       id: `template-${Date.now()}`,
       name: templateName,
-      nodes: [...nodes],
+      nodes: sanitizedNodes,
       edges: [...edges],
       createdAt: new Date().toISOString()
     };
+    
     setTemplates(prev => [...prev, newTemplate]);
     setIsTemplateSaveModalOpen(false);
   };

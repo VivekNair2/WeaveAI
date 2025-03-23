@@ -61,9 +61,31 @@ const MarketPlace = () => {
 
   // Handle template selection to load in workspace
   const handleLoadTemplate = (template: MarketPlace) => {
-    // Store the selected template in sessionStorage for the Playground to access
-    sessionStorage.setItem('template-to-load', JSON.stringify(template));
-    console.log("template to load", JSON.stringify(template));
+    // Create a deep copy of the template
+    const sanitizedTemplate = JSON.parse(JSON.stringify(template));
+    
+    // Process nodes to safely handle file values
+    sanitizedTemplate.nodes = sanitizedTemplate.nodes.map((node: any) => {
+      // If the node has inputs
+      if (node.data?.inputs) {
+        node.data.inputs = node.data.inputs.map((input: any) => {
+          // Handle file inputs with values that are objects
+          if (input.type === 'file' && typeof input.value === 'object') {
+            // Store file metadata separately and set value to null to avoid React rendering issues
+            return { 
+              ...input, 
+              value: null, 
+              fileInfo: input.value // Preserve any file metadata like filename
+            };
+          }
+          return input;
+        });
+      }
+      return node;
+    });
+    
+    // Store the sanitized template
+    sessionStorage.setItem('template-to-load', JSON.stringify(sanitizedTemplate));
     navigate('/playground');
   };
   
@@ -88,12 +110,12 @@ const MarketPlace = () => {
             key={node.id}
             className="absolute bg-white rounded-md shadow-sm border border-gray-200 w-20 h-12 flex items-center justify-center text-xs font-medium"
             style={{
-              left: `${(node.position.x % 300) / 3}px`,
-              top: `${(node.position.y % 160) / 3}px`,
+              left: `${(node.position?.x || 0) % 300 / 3}px`,
+              top: `${(node.position?.y || 0) % 160 / 3}px`,
               zIndex: index
             }}
           >
-            {node.data.label}
+            {node.data?.label || 'Node'}
           </div>
         ))}
       </div>
