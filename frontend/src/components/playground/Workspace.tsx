@@ -95,6 +95,31 @@ const Workspace: React.FC<WorkspaceProps> = ({
     return () => observer.disconnect();
   }, [nodes, scale, offset]);
 
+  const handleZoom = (delta: number) => {
+    // Calculate new scale with limits
+    const newScale = Math.min(Math.max(scale + delta, MIN_ZOOM), MAX_ZOOM);
+    
+    // Get workspace dimensions
+    const workspaceRect = workspaceRef.current?.getBoundingClientRect();
+    if (!workspaceRect) return;
+    
+    // Use center of workspace as zoom center
+    const centerX = workspaceRect.width / 2;
+    const centerY = workspaceRect.height / 2;
+    
+    // Calculate zoom center point in workspace coordinates
+    const zoomCenterX = centerX / scale - offset.x;
+    const zoomCenterY = centerY / scale - offset.y;
+    
+    // Calculate new offset to zoom toward center
+    const newOffsetX = (-zoomCenterX * (newScale - scale)) / newScale + offset.x;
+    const newOffsetY = (-zoomCenterY * (newScale - scale)) / newScale + offset.y;
+    
+    setScale(newScale);
+    setOffset({ x: newOffsetX, y: newOffsetY });
+  };
+
+
   // Modify your useEffect to add a non-passive wheel event listener
   useEffect(() => {
     const currentWorkspaceRef = workspaceRef.current;
@@ -105,29 +130,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
       // Calculate zoom delta based on wheel direction
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
-
-      // Calculate new scale with limits
-      const newScale = Math.min(Math.max(scale + delta, MIN_ZOOM), MAX_ZOOM);
-
-      // Get cursor position relative to the workspace
-      const workspaceRect = currentWorkspaceRef?.getBoundingClientRect();
-      if (!workspaceRect) return;
-
-      const mouseX = e.clientX - workspaceRect.left;
-      const mouseY = e.clientY - workspaceRect.top;
-
-      // Calculate zoom center point in workspace coordinates
-      const zoomCenterX = mouseX / scale - offset.x;
-      const zoomCenterY = mouseY / scale - offset.y;
-
-      // Calculate new offset to zoom toward cursor position
-      const newOffsetX =
-        (-zoomCenterX * (newScale - scale)) / newScale + offset.x;
-      const newOffsetY =
-        (-zoomCenterY * (newScale - scale)) / newScale + offset.y;
-
-      setScale(newScale);
-      setOffset({ x: newOffsetX, y: newOffsetY });
+      
+      // Use the handleZoom function
+      handleZoom(delta);
     };
 
     // Add the wheel event listener with passive: false to ensure preventDefault works
@@ -151,8 +156,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
       
       // Get the transform container dimensions (2000px × 2000px)
-      const transformWidth = 2000;
-      const transformHeight = 2000;
+      const transformWidth = 4500;
+      const transformHeight = 4000;
       
       // Calculate the offset needed to center the transform container
       // We divide by scale to convert from screen coordinates to workspace coordinates
@@ -695,19 +700,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
         <div className="flex flex-col bg-white rounded-r-md shadow-sm">
           <button
             className="px-2 py-1 border-b hover:bg-slate-100"
-            onClick={() => {
-              const newScale = Math.min(scale + 0.1, MAX_ZOOM);
-              setScale(newScale);
-            }}
+            onClick={() => handleZoom(0.1)}
           >
             +
           </button>
           <button
             className="px-2 py-1 hover:bg-slate-100"
-            onClick={() => {
-              const newScale = Math.max(scale - 0.1, MIN_ZOOM);
-              setScale(newScale);
-            }}
+            onClick={() => handleZoom(-0.1)}
           >
             -
           </button>
@@ -723,8 +722,8 @@ const Workspace: React.FC<WorkspaceProps> = ({
           // Always keep pointer events active even when panning
           pointerEvents: "auto",
           // Add width and height that inversely scale with zoom level
-          width: `2000px`,
-          height: `2000px`,
+          width: `3500px`,
+          height: `3500px`,
         }}
       >
         {/* Background grid */}
