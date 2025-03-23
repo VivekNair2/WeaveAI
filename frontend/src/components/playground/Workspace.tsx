@@ -103,17 +103,9 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const workspaceRect = workspaceRef.current?.getBoundingClientRect();
     if (!workspaceRect) return;
     
-    // Use center of workspace as zoom center
-    const centerX = workspaceRect.width / 2;
-    const centerY = workspaceRect.height / 2;
-    
-    // Calculate zoom center point in workspace coordinates
-    const zoomCenterX = centerX / scale - offset.x;
-    const zoomCenterY = centerY / scale - offset.y;
-    
-    // Calculate new offset to zoom toward center
-    const newOffsetX = (-zoomCenterX * (newScale - scale)) / newScale + offset.x;
-    const newOffsetY = (-zoomCenterY * (newScale - scale)) / newScale + offset.y;
+    // Calculate new offset - using the same logic as in the wheel event handler
+    const newOffsetX = (-1 * (newScale - scale)) / newScale + offset.x;
+    const newOffsetY = (-1 * (newScale - scale)) / newScale + offset.y;
     
     setScale(newScale);
     setOffset({ x: newOffsetX, y: newOffsetY });
@@ -130,9 +122,21 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
       // Calculate zoom delta based on wheel direction
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      
-      // Use the handleZoom function
-      handleZoom(delta);
+
+      // Calculate new scale with limits
+      const newScale = Math.min(Math.max(scale + delta, MIN_ZOOM), MAX_ZOOM);
+
+      // Get cursor position relative to the workspace
+      const workspaceRect = currentWorkspaceRef?.getBoundingClientRect();
+      if (!workspaceRect) return;
+      // Calculate new offset to zoom toward cursor position
+      const newOffsetX =
+        (-1 * (newScale - scale)) / newScale + offset.x;
+      const newOffsetY =
+        (-1 * (newScale - scale)) / newScale + offset.y;
+
+      setScale(newScale);
+      setOffset({ x: newOffsetX, y: newOffsetY });
     };
 
     // Add the wheel event listener with passive: false to ensure preventDefault works
@@ -148,7 +152,6 @@ const Workspace: React.FC<WorkspaceProps> = ({
       }
     };
   }, [scale, offset]);
-
   // Add this effect to center the workspace on initial load
   useEffect(() => {
     if (workspaceRef.current && transformContainerRef.current) {
@@ -156,12 +159,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
       
       // Get the transform container dimensions (2000px × 2000px)
-      const transformWidth = 4500;
-      const transformHeight = 4000;
+      const transformWidth = 3500;
+      const transformHeight = 3500;
       
       // Calculate the offset needed to center the transform container
       // We divide by scale to convert from screen coordinates to workspace coordinates
-      const initialOffsetX = (workspaceRect.width - transformWidth * scale) / 2 / scale;
+      const initialOffsetX = (workspaceRect.width - transformWidth * scale) / 2 / scale + 500;
       const initialOffsetY = (workspaceRect.height - transformHeight * scale) / 2 / scale;
       
       // Set the initial offset
