@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Points, PointMaterial, Grid } from '@react-three/drei';
 import * as random from 'maath/random';
@@ -34,6 +34,15 @@ function Stars() {
 function AnimatedCubes() {
   const groupRef = useRef<THREE.Group | null>(null);
   const cubes = new Array(8).fill(null);
+  
+  // Generate random colors for each cube
+  const colors = useMemo(() => 
+    cubes.map(() => new THREE.Color(
+      Math.random() * 0.5 + 0.5, // r
+      Math.random() * 0.5 + 0.5, // g
+      Math.random() * 0.5 + 0.5  // b
+    )),
+  []);
 
   useFrame((state) => {
     if (groupRef.current) {
@@ -60,9 +69,9 @@ function AnimatedCubes() {
         >
           <boxGeometry />
           <meshPhongMaterial
-            color={new THREE.Color('#731963')}
+            color={colors[i]}
             transparent
-            opacity={0.7}
+            opacity={1}
           />
         </mesh>
       ))}
