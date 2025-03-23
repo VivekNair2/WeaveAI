@@ -342,7 +342,6 @@ const Playground = () => {
             targetHandle: edge.targetHandle
           }))
       }));
-      console.log("Data to send backend:", JSON.stringify(payload, null, 2));
     }
   }, [edges, nodes]);
 

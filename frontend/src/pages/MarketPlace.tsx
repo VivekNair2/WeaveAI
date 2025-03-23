@@ -86,6 +86,7 @@ const MarketPlace = () => {
     
     // Store the sanitized template
     sessionStorage.setItem('template-to-load', JSON.stringify(sanitizedTemplate));
+    console.log("Template to load ",sanitizedTemplate)
     navigate('/playground');
   };
   
