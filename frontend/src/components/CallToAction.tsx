@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 
 export function CallToAction() {
   return (
-    <section className="py-24 bg-bistre">
+    <section className="relative py-24 bg-bistre">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0 }}

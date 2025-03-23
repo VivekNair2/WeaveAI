@@ -26,7 +26,7 @@ export function Features() {
   ];
 
   return (
-    <section className="py-24 bg-timberwolf bg-opacity-30">
+    <section className="relative py-24 bg-timberwolf">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0 }}

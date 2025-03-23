@@ -93,7 +93,7 @@ function Scene() {
 
 export function Background() {
   return (
-    <div className="fixed inset-0 -z-10">
+    <div className="fixed inset-0">
       <Canvas camera={{ position: [0, 0, 5], fov: 75 }} gl={{ antialias: true }}>
         <Scene />
       </Canvas>

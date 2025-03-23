@@ -1,6 +1,3 @@
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -51,12 +48,9 @@ def text_agent(request: QueryRequest):
     return {"response": agent.run_agent(query_text)}
 
 @app.post("/csv_agent")
-def csv_agent(model: str = Form(...), query: str = Form(...), file_path: str = Form(...)):
-    try:
-        agent = CSVAgent(model, file_path)
-        return {"response": agent.run_agent(query)}
-    except ValueError as e:
-        return {"error": str(e)}, 404
+def csv_agent(model: str = Form(...), query: str = Form(...), file: UploadFile = File(...)):
+    agent = CSVAgent(model, file)
+    return {"response": agent.run_agent(query)}
 
 @app.post("/rag_agent")
 def rag_agent(model: str = Form(...), query: str = Form(...), file: UploadFile = File(...)):
@@ -96,7 +90,7 @@ def workflow_agent(
     use_cached_results: bool = Form(True),
     max_retries: int = Form(3),
     retry_delay: int = Form(5),
-    csv_file: str = Form(...)
+    file: UploadFile = File(...)
 ):
     
     print("session_id:", session_id)
@@ -108,11 +102,11 @@ def workflow_agent(
     print("use_cached_results:", use_cached_results)
     print("max_retries:", max_retries)
     print("retry_delay:", retry_delay)
-    print("csv_file:", csv_file)
+    print("file:", file.filename)
 
     workflow = MarketingEmailWorkflow(
         session_id=session_id,
-        csv_file=csv_file,
+        file=file,
         sender_email=sender_email,
         sender_name=sender_name,
         sender_passkey=sender_passkey

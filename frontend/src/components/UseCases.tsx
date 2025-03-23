@@ -20,7 +20,7 @@ export function UseCases() {
   ];
 
   return (
-    <section className="py-24 bg-white">
+    <section className="relative py-24 bg-white">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0 }}

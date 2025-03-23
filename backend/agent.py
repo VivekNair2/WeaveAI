@@ -42,28 +42,22 @@ class TextAgent:
         return response.content
     
 class CSVAgent:
-    def __init__ (self,model,file_path):
+    def __init__ (self,model,file:UploadFile):
         if "gemini" in model.lower():
             self.model=gemini_model
         elif "groq" in model.lower():
             self.model=groq_model
-
-        # Handle file path resolution within data directory
-        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-        if not os.path.isabs(file_path):
-            file_path = os.path.join(data_dir, file_path)
-
-        if not os.path.exists(file_path):
-            raise ValueError(f"CSV file not found in data directory: {file_path}")
-        self.csv=file_path
-        csv_name = os.path.basename(file_path)
+       
+        csv_content = file.file.read().decode("utf-8")
+        file_name=file.filename
+        
         self.agent = Agent(
         model=self.model,
-        tools=[CsvTools(csvs=[self.csv])],
+        tools=[CsvTools(csvs=[csv_content])],
         markdown=True,
         show_tool_calls=True,
         instructions=[
-            f"The CSV file name is {csv_name}",
+            f"the name of the csv is {file_name}",
             "First check the columns in the file",
             "Then run the query to answer the question",
             "Always wrap column names with double quotes if they contain spaces or special characters",
@@ -74,6 +68,7 @@ class CSVAgent:
     def run_agent(self,query):
         response:RunResponse=self.agent.run(query,stream=False)
         return response.content
+
         
     
 class ZoomAgent:

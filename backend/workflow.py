@@ -31,7 +31,7 @@ class MarketingEmailWorkflow(Workflow):
     def __init__(
         self,
         session_id: str,
-        csv_file: str,
+        file: UploadFile,
         sender_email: str,
         sender_name: str,
         sender_passkey: str,
@@ -40,20 +40,14 @@ class MarketingEmailWorkflow(Workflow):
         **kwargs
     ):
         super().__init__(session_id=session_id, *args, **kwargs)
-        # Handle file path resolution within data directory
-        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-        if not os.path.isabs(csv_file):
-            self.csv_file_path = os.path.join(data_dir, csv_file)
-        else:
-            self.csv_file_path = csv_file
-
+        self.file = file
         self.sender_email = sender_email
         self.sender_name = sender_name
         self.sender_passkey = sender_passkey
         self.model = model
 
-        # Initialize CSV Agent for reading customer data
-        self.csv_agent = CSVAgent(model=self.model, file_path=self.csv_file_path)
+        # Initialize CSV Agent with the uploaded file
+        self.csv_agent = CSVAgent(model=self.model, file=self.file)
 
     def run(
         self,

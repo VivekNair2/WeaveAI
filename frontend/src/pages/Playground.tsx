@@ -510,22 +510,37 @@ const Playground = () => {
           if (!csvFile) {
             throw new Error("No file selected for Email Marketing workflow");
           }
+          
+          if (!(csvFile instanceof File) || csvFile.size === 0) {
+            throw new Error("Please select a valid CSV file with content (not just a filename)");
+          }
+          
           const productDescription = textInputNode?.data.inputs.find(input => input.name === 'Text')?.value || "Default Product Description";
           
-          // Prepare parameters for the workflow agent
-          const workflowParams = {
-            session_id: "marekting_camapign_222",
-            sender_email: "darkbeast645@gmail.com",
-            sender_name: "Raviraj",
-            sender_passkey: "iaes xvos crlr zvlu",
-            company_name: "PowerLook", // You can update these defaults as needed
-            product_description: productDescription,
-            csv_file: "sample_marketing.csv",
-            model: "groq"
-          };
+          // Prepare FormData for sending the actual file
+          const formData = new FormData();
+          formData.append("session_id", "marketing_campaign_222");
+          formData.append("sender_email", senderEmail || "darkbeast645@gmail.com");
+          formData.append("sender_name", senderName || "Raviraj");
+          formData.append("sender_passkey", senderPasskey || "iaes xvos crlr zvlu");
+          formData.append("company_name", "PowerLook");
+          formData.append("product_description", productDescription);
+          formData.append("use_cached_results", "true");
+          formData.append("max_retries", "3");
+          formData.append("retry_delay", "5");
+          formData.append("file", csvFile);
           
-          // Call the new workflow agent endpoint using the helper function
-          result = await sendWorkflowAgentRequest(workflowParams);
+          // Send the actual FormData request
+          const response = await fetch(ApiEndpoint.WorkflowAgent, {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          
+          result = await response.json();
           break;
         }
         case 'zoom-tool': { // New Zoom Agent workflow pattern branch

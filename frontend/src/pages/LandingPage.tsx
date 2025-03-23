@@ -7,7 +7,7 @@ import { CallToAction } from '../components/CallToAction';
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white bg-opacity-80">
-      {/* <Background /> */}
+      <Background />
       <Hero />
       <Features />
       <UseCases />
