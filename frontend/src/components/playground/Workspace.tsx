@@ -144,6 +144,26 @@ const Workspace: React.FC<WorkspaceProps> = ({
     };
   }, [scale, offset]);
 
+  // Add this effect to center the workspace on initial load
+  useEffect(() => {
+    if (workspaceRef.current && transformContainerRef.current) {
+      // Get the dimensions of the workspace container
+      const workspaceRect = workspaceRef.current.getBoundingClientRect();
+      
+      // Get the transform container dimensions (2000px × 2000px)
+      const transformWidth = 2000;
+      const transformHeight = 2000;
+      
+      // Calculate the offset needed to center the transform container
+      // We divide by scale to convert from screen coordinates to workspace coordinates
+      const initialOffsetX = (workspaceRect.width - transformWidth * scale) / 2 / scale;
+      const initialOffsetY = (workspaceRect.height - transformHeight * scale) / 2 / scale;
+      
+      // Set the initial offset
+      setOffset({ x: initialOffsetX, y: initialOffsetY });
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
   // Keep this empty handler to avoid React warnings, but the actual work is done in the useEffect above
   const handleWheel = (e: React.WheelEvent) => {
     // No need to do anything here, the non-passive event listener handles it
@@ -466,9 +486,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
     return (
       <svg
-        className="absolute inset-0 pointer-events-none z-10"
-        width="1000px"
-        height="1000px"
+        className="absolute inset-0 pointer-events-none z-10 w-full h-full"
       >
         <path
           d={path}
@@ -485,9 +503,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
   const renderEdges = () => {
     return (
       <svg
-        className="absolute z-10 left-0 top-0"
-        width="1000px"
-        height="1000px"
+        className="absolute z-10 top-0 w-full h-full"
         style={{ pointerEvents: "none" }}
       >
         <defs>
@@ -706,12 +722,15 @@ const Workspace: React.FC<WorkspaceProps> = ({
           transform: `scale(${scale}) translate(${offset.x}px, ${offset.y}px)`,
           // Always keep pointer events active even when panning
           pointerEvents: "auto",
+          // Add width and height that inversely scale with zoom level
+          width: `2000px`,
+          height: `2000px`,
         }}
       >
         {/* Background grid */}
         <div className="absolute inset-0 grid grid-cols-[repeat(40,minmax(25px,1fr))] grid-rows-[repeat(40,minmax(25px,1fr))] opacity-15 pointer-events-none">
           {Array.from({ length: 1600 }).map((_, i) => (
-            <div key={i} className="border-[0.5px] border-slate-300" />
+            <div key={i} className="border-[0.5px] border-black" />
           ))}
         </div>
 

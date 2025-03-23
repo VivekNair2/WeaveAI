@@ -457,7 +457,7 @@ const Playground = () => {
           const instructionsInput = textAgentNode.data.inputs.find(input => input.name === 'Instructions');
           const queryValue = textInputNode.data.inputs.find(input => input.name === 'Text')?.value || '';
           const payload: TextAgentRequest = {
-            model: modelInput?.value || "gpt-4",
+            model: modelInput?.value || "gemini",
             query: queryValue,
             instructions: instructionsInput?.value || ""
           };
