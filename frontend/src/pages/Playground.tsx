@@ -266,10 +266,40 @@ const Playground = () => {
 
   const handleAddNode = (nodeType: string) => {
     const template = nodeTemplates[nodeType];
+    
+    // Get the workspace element to calculate its dimensions
+    const workspaceElement = document.querySelector('.flex-1.h-full.relative.overflow-hidden');
+    let centerX = 100;
+    let centerY = 100;
+    
+    if (workspaceElement) {
+      const rect = workspaceElement.getBoundingClientRect();
+      // Calculate center in screen coordinates
+      const screenCenterX = rect.left + rect.width / 2;
+      const screenCenterY = rect.top + rect.height / 2;
+      
+      // Convert to workspace logical coordinates based on current pan/zoom
+      // We need to account for the current scale and offset
+      // This retrieves transform values from the DOM to ensure accuracy
+      const transformElement = workspaceElement.querySelector('[style*="transform"]');
+      if (transformElement) {
+        const style = window.getComputedStyle(transformElement);
+        const transform = style.transform || style.webkitTransform;
+        
+        // Extract scale and translation values from the matrix
+        const matrix = new DOMMatrix(transform);
+        const scale = matrix.a; // The scaling factor
+        
+        // Calculate the center position in workspace coordinates
+        centerX = (screenCenterX - rect.left) / scale - matrix.e / scale;
+        centerY = (screenCenterY - rect.top) / scale - matrix.f / scale;
+      }
+    }
+    
     const newNode: NodeData = {
       id: `node-${Date.now()}`,
       type: nodeType,
-      position: { x: 100, y: 100 },
+      position: { x: centerX, y: centerY },
       data: { 
         label: nodeType,
         inputs: template.inputs.map(input => ({ ...input, id: `${input.id}-${Date.now()}` })),
