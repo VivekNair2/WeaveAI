@@ -544,5 +544,662 @@
       }
     ],
     "createdAt": "2025-03-23T17:01:56.601Z"
+  },
+  {
+    "id": "template-csv-agent",
+    "name": "CSV Agent Workflow",
+    "nodes": [
+      {
+        "id": "node-csv-agent-1",
+        "type": "File-Input-Tool",
+        "position": {
+          "x": 650,
+          "y": 1700
+        },
+        "data": {
+          "label": "File-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-csv-agent-1",
+              "name": "File",
+              "type": "file",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-csv-agent-1",
+              "name": "File",
+              "type": "file",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-csv-agent-2",
+        "type": "CSV-Agent",
+        "position": {
+          "x": 850,
+          "y": 1800
+        },
+        "data": {
+          "label": "CSV-Agent",
+          "inputs": [
+            {
+              "id": "input-1-csv-agent-2",
+              "name": "File",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-2-csv-agent-2",
+              "name": "Instructions",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-3-csv-agent-2",
+              "name": "Query",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-csv-agent-2",
+              "name": "Personal Description",
+              "type": "string",
+              "fieldType": "output"
+            },
+            {
+              "id": "output-2-csv-agent-2",
+              "name": "Receiver Emails",
+              "type": "string",
+              "fieldType": "output"
+            },
+            {
+              "id": "output-3-csv-agent-2",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-csv-agent-3",
+        "type": "Text-Input-Tool",
+        "position": {
+          "x": 650,
+          "y": 1900
+        },
+        "data": {
+          "label": "Text-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-csv-agent-3",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-csv-agent-3",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-csv-agent-4",
+        "type": "End",
+        "position": {
+          "x": 1050,
+          "y": 1800
+        },
+        "data": {
+          "label": "End",
+          "inputs": [
+            {
+              "id": "input-1-csv-agent-4",
+              "name": "End",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-csv-1",
+        "source": "node-csv-agent-1",
+        "sourceHandle": "output-1-csv-agent-1",
+        "target": "node-csv-agent-2",
+        "targetHandle": "input-1-csv-agent-2"
+      },
+      {
+        "id": "edge-csv-2",
+        "source": "node-csv-agent-3",
+        "sourceHandle": "output-1-csv-agent-3",
+        "target": "node-csv-agent-2",
+        "targetHandle": "input-2-csv-agent-2"
+      },
+      {
+        "id": "edge-csv-3",
+        "source": "node-csv-agent-2",
+        "sourceHandle": "output-1-csv-agent-2",
+        "target": "node-csv-agent-4",
+        "targetHandle": "input-1-csv-agent-4"
+      }
+    ],
+    "createdAt": "2025-08-12T12:00:00.000Z"
+  },
+  {
+    "id": "template-web-search",
+    "name": "Web Search Workflow",
+    "nodes": [
+      {
+        "id": "node-web-search-1",
+        "type": "Text-Input-Tool",
+        "position": {
+          "x": 650,
+          "y": 2100
+        },
+        "data": {
+          "label": "Text-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-web-search-1",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-web-search-1",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-web-search-2",
+        "type": "Web-Search-Tool",
+        "position": {
+          "x": 650,
+          "y": 2300
+        },
+        "data": {
+          "label": "Web-Search-Tool",
+          "inputs": [],
+          "outputs": [
+            {
+              "id": "output-1-web-search-2",
+              "name": "Tool",
+              "type": "string",
+              "fieldType": "output",
+              "display": false
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-web-search-3",
+        "type": "Text-Agent",
+        "position": {
+          "x": 950,
+          "y": 2200
+        },
+        "data": {
+          "label": "Text-Agent",
+          "inputs": [
+            {
+              "id": "input-1-web-search-3",
+              "name": "Tools",
+              "type": "tool",
+              "fieldType": "none"
+            },
+            {
+              "id": "input-2-web-search-3",
+              "name": "Instructions",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-3-web-search-3",
+              "name": "Query",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-4-web-search-3",
+              "name": "LLM",
+              "type": "string",
+              "fieldType": "input",
+              "options": [
+                "Groq",
+                "Gemini"
+              ]
+            },
+            {
+              "id": "input-5-web-search-3",
+              "name": "API Key",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-web-search-3",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-web-search-4",
+        "type": "End",
+        "position": {
+          "x": 1200,
+          "y": 2200
+        },
+        "data": {
+          "label": "End",
+          "inputs": [
+            {
+              "id": "input-1-web-search-4",
+              "name": "End",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-web-1",
+        "source": "node-web-search-1",
+        "sourceHandle": "output-1-web-search-1",
+        "target": "node-web-search-3",
+        "targetHandle": "input-2-web-search-3"
+      },
+      {
+        "id": "edge-web-2",
+        "source": "node-web-search-2",
+        "sourceHandle": "output-1-web-search-2",
+        "target": "node-web-search-3",
+        "targetHandle": "input-1-web-search-3"
+      },
+      {
+        "id": "edge-web-3",
+        "source": "node-web-search-3",
+        "sourceHandle": "output-1-web-search-3",
+        "target": "node-web-search-4",
+        "targetHandle": "input-1-web-search-4"
+      }
+    ],
+    "createdAt": "2025-08-12T12:00:00.000Z"
+  },
+  {
+    "id": "template-rag",
+    "name": "RAG Workflow",
+    "nodes": [
+      {
+        "id": "node-rag-1",
+        "type": "Text-Input-Tool",
+        "position": {
+          "x": 650,
+          "y": 2500
+        },
+        "data": {
+          "label": "Text-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-rag-1",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-rag-1",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-rag-2",
+        "type": "Knowledge-Base",
+        "position": {
+          "x": 650,
+          "y": 2700
+        },
+        "data": {
+          "label": "Knowledge-Base",
+          "inputs": [
+            {
+              "id": "input-1-rag-2",
+              "name": "File",
+              "type": "file",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-rag-2",
+              "name": "Content",
+              "type": "string",
+              "fieldType": "output",
+              "display": false
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-rag-3",
+        "type": "Text-Agent",
+        "position": {
+          "x": 950,
+          "y": 2600
+        },
+        "data": {
+          "label": "Text-Agent",
+          "inputs": [
+            {
+              "id": "input-1-rag-3",
+              "name": "Tools",
+              "type": "tool",
+              "fieldType": "none"
+            },
+            {
+              "id": "input-2-rag-3",
+              "name": "Instructions",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-3-rag-3",
+              "name": "Query",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-4-rag-3",
+              "name": "LLM",
+              "type": "string",
+              "fieldType": "input",
+              "options": [
+                "Groq",
+                "Gemini"
+              ]
+            },
+            {
+              "id": "input-5-rag-3",
+              "name": "API Key",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-rag-3",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-rag-4",
+        "type": "End",
+        "position": {
+          "x": 1200,
+          "y": 2600
+        },
+        "data": {
+          "label": "End",
+          "inputs": [
+            {
+              "id": "input-1-rag-4",
+              "name": "End",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-rag-1",
+        "source": "node-rag-1",
+        "sourceHandle": "output-1-rag-1",
+        "target": "node-rag-3",
+        "targetHandle": "input-2-rag-3"
+      },
+      {
+        "id": "edge-rag-2",
+        "source": "node-rag-2",
+        "sourceHandle": "output-1-rag-2",
+        "target": "node-rag-3",
+        "targetHandle": "input-1-rag-3"
+      },
+      {
+        "id": "edge-rag-3",
+        "source": "node-rag-3",
+        "sourceHandle": "output-1-rag-3",
+        "target": "node-rag-4",
+        "targetHandle": "input-1-rag-4"
+      }
+    ],
+    "createdAt": "2025-08-12T12:00:00.000Z"
+  },
+  {
+    "id": "template-text-agent",
+    "name": "Text Agent Workflow",
+    "nodes": [
+      {
+        "id": "node-text-agent-1",
+        "type": "Text-Input-Tool",
+        "position": {
+          "x": 650,
+          "y": 2900
+        },
+        "data": {
+          "label": "Text-Input-Tool",
+          "inputs": [
+            {
+              "id": "input-1-text-agent-1",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-text-agent-1",
+              "name": "Text",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-text-agent-2",
+        "type": "Text-Agent",
+        "position": {
+          "x": 850,
+          "y": 2900
+        },
+        "data": {
+          "label": "Text-Agent",
+          "inputs": [
+            {
+              "id": "input-1-text-agent-2",
+              "name": "Tools",
+              "type": "tool",
+              "fieldType": "none"
+            },
+            {
+              "id": "input-2-text-agent-2",
+              "name": "Instructions",
+              "type": "string",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-3-text-agent-2",
+              "name": "Query",
+              "type": "none",
+              "fieldType": "input"
+            },
+            {
+              "id": "input-4-text-agent-2",
+              "name": "LLM",
+              "type": "string",
+              "fieldType": "input",
+              "options": [
+                "Groq",
+                "Gemini"
+              ]
+            },
+            {
+              "id": "input-5-text-agent-2",
+              "name": "API Key",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-text-agent-2",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output"
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-text-agent-3",
+        "type": "End",
+        "position": {
+          "x": 1050,
+          "y": 2900
+        },
+        "data": {
+          "label": "End",
+          "inputs": [
+            {
+              "id": "input-1-text-agent-3",
+              "name": "End",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-text-1",
+        "source": "node-text-agent-1",
+        "sourceHandle": "output-1-text-agent-1",
+        "target": "node-text-agent-2",
+        "targetHandle": "input-1-text-agent-2"
+      },
+      {
+        "id": "edge-text-2",
+        "source": "node-text-agent-2",
+        "sourceHandle": "output-1-text-agent-2",
+        "target": "node-text-agent-3",
+        "targetHandle": "input-1-text-agent-3"
+      }
+    ],
+    "createdAt": "2025-08-12T12:00:00.000Z"
+  },
+  {
+    "id": "template-zoom-tool",
+    "name": "Zoom Agent",
+    "nodes": [
+      {
+        "id": "node-zoom-1",
+        "type": "Zoom-Tool",
+        "position": {
+          "x": 700,
+          "y": 3200
+        },
+        "data": {
+          "label": "Zoom-Tool",
+          "inputs": [
+            {
+              "id": "input-1-zoom-1",
+              "name": "Query",
+              "type": "string",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output-1-zoom-1",
+              "name": "Output",
+              "type": "string",
+              "fieldType": "output",
+              "display": false
+            }
+          ]
+        }
+      },
+      {
+        "id": "node-zoom-2",
+        "type": "End",
+        "position": {
+          "x": 900,
+          "y": 3200
+        },
+        "data": {
+          "label": "End",
+          "inputs": [
+            {
+              "id": "input-1-zoom-2",
+              "name": "End",
+              "type": "none",
+              "fieldType": "input"
+            }
+          ],
+          "outputs": []
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-zoom-1",
+        "source": "node-zoom-1",
+        "sourceHandle": "output-1-zoom-1",
+        "target": "node-zoom-2",
+        "targetHandle": "input-1-zoom-2"
+      }
+    ],
+    "createdAt": "2025-08-12T12:00:00.000Z"
   }
 ]
